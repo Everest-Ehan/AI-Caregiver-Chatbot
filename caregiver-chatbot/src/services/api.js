@@ -164,6 +164,26 @@ class ApiService {
   }
 
   /**
+   * Update context data for the current session
+   */
+  async updateContext(sessionId, contextData) {
+    try {
+      const response = await this.makeRequest('/update-context', {
+        method: 'POST',
+        body: JSON.stringify({
+          session_id: sessionId,
+          context_data: contextData
+        }),
+      });
+      
+      return response;
+    } catch (error) {
+      console.error('Failed to update context:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Reset the session
    */
   resetSession() {

@@ -328,7 +328,7 @@ export default function Chatbot() {
     });
   }
 
-  function updateEngineContext() {
+  async function updateEngineContext() {
     const contextInputsContainer = contextSection.querySelector('#contextInputs');
     const inputs = contextInputsContainer.querySelectorAll('input');
     const newContext = {};
@@ -342,7 +342,7 @@ export default function Chatbot() {
       }
     });
     
-    engine.updateContext(newContext);
+    await engine.updateContext(newContext);
   }
 
   function showScenarioSelector() {

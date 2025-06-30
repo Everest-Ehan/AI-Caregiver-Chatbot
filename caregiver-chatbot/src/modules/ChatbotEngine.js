@@ -23,6 +23,9 @@ export default class ChatbotEngine {
         // Use backend API
         const sessionResponse = await apiService.startSession(scenarioId);
         
+        // Store session ID
+        this.sessionId = sessionResponse.session_id;
+        
         // Get scenarios from backend to find the selected one
         const scenarios = await apiService.getScenarios();
         const scenario = scenarios.find(s => s.id === scenarioId);
@@ -256,7 +259,7 @@ export default class ChatbotEngine {
     return [...this.conversationHistory];
   }
 
-  updateContext(newContext) {
+  async updateContext(newContext) {
     // Convert field keys to context keys and merge
     const convertedContext = {};
     Object.entries(newContext).forEach(([key, value]) => {
@@ -268,6 +271,15 @@ export default class ChatbotEngine {
     });
     
     this.context = { ...this.context, ...convertedContext };
+    
+    // Send context update to backend if we have a session
+    if (this.currentScenario && this.sessionId) {
+      try {
+        await apiService.updateContext(this.sessionId, convertedContext);
+      } catch (error) {
+        console.error('Error updating context on backend:', error);
+      }
+    }
   }
 
   async checkBackendHealth() {
