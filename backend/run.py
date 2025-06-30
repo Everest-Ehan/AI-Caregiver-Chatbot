@@ -10,7 +10,9 @@ import uvicorn
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from main import app, Config
+from main import app
+from config import Config
+
 
 def main():
     """Start the FastAPI server"""

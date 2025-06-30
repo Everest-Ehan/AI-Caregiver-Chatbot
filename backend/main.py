@@ -1,193 +1,153 @@
-from fastapi import FastAPI, HTTPException
+# backend/main.py
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-import os
-import json
+from typing import Optional, Dict
+from uuid import uuid4
+from agents.caregiver_agent import chat_graph
+from langchain_core.messages import HumanMessage, AIMessage
 
-# Import our configuration and agent
-from config import Config
-from agents.caregiver_agent import create_caregiver_agent
+# In-memory session storage
+sessions = {}
 
-# Validate configuration
-try:
-    Config.validate()
-except ValueError as e:
-    print(f"Configuration error: {e}")
-    print("Please create a .env file with your OpenAI API key")
-    exit(1)
+app = FastAPI()
 
-app = FastAPI(
-    title="Caregiver Chatbot API",
-    description="AI-powered caregiver call maintenance system",
-    version="1.0.0"
-)
-
-# Configure CORS
+# Allow all origins (in dev)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=Config.ALLOWED_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Initialize the LangGraph agent
-try:
-    caregiver_agent = create_caregiver_agent()
-    if caregiver_agent is None:
-        print("❌ LangGraph agent creation returned None")
-        caregiver_agent = None
-    else:
-        print("✅ LangGraph agent initialized successfully")
-except Exception as e:
-    print(f"❌ Error initializing LangGraph agent: {e}")
-    import traceback
-    traceback.print_exc()
-    caregiver_agent = None
-
-# Pydantic models for API requests/responses
-class ChatMessage(BaseModel):
-    role: str  # "user" or "assistant"
-    content: str
-    timestamp: Optional[str] = None
-
-class ChatRequest(BaseModel):
-    message: str
-    scenario_id: Optional[str] = None
-    context_data: Optional[Dict[str, Any]] = None
-    session_id: Optional[str] = None
-
-class ChatResponse(BaseModel):
-    message: str
-    session_id: str
-    is_complete: bool = False
-    extracted_data: Optional[Dict[str, Any]] = None
-
-class ScenarioInfo(BaseModel):
-    id: str
-    name: str
-    description: str
-    context_fields: List[str]
-
-# API Routes
-@app.get("/")
-async def root():
-    return {"message": "Caregiver Chatbot API is running"}
-
-@app.get("/health")
-async def health_check():
-    agent_status = "ready" if caregiver_agent else "error"
-    return {"status": "healthy", "agent": agent_status}
-
-@app.post("/chat", response_model=ChatResponse)
-async def chat(request: ChatRequest):
-    """
-    Process a chat message and return the AI's response
-    """
-    try:
-        # Simple AI responses based on user input
-        user_message = request.message.lower()
-        
-        # Basic conversation patterns
-        if any(word in user_message for word in ["hello", "hi", "hey"]):
-            message = "Hello! How can I help you today?"
-        elif any(word in user_message for word in ["how are you", "how do you do"]):
-            message = "I'm doing well, thank you for asking! How about you?"
-        elif any(word in user_message for word in ["bye", "goodbye", "see you"]):
-            message = "Goodbye! Have a great day!"
-        elif any(word in user_message for word in ["thank you", "thanks"]):
-            message = "You're welcome! Is there anything else I can help you with?"
-        elif any(word in user_message for word in ["what can you do", "help", "what do you do"]):
-            message = "I'm a simple AI assistant. I can chat with you, answer questions, and help with basic tasks. What would you like to talk about?"
-        elif any(word in user_message for word in ["weather", "temperature"]):
-            message = "I can't check the weather right now, but I hope it's nice where you are!"
-        elif any(word in user_message for word in ["name", "who are you"]):
-            message = "I'm an AI assistant created to help with conversations. What's your name?"
-        elif "?" in user_message:
-            message = "That's an interesting question! I'm still learning, but I'd love to hear more about what you're thinking."
-        else:
-            # Echo back with some variation
-            message = f"I understand you said: '{request.message}'. Tell me more about that!"
-        
-        return ChatResponse(
-            message=message,
-            session_id=request.session_id or "default",
-            is_complete=False,
-            extracted_data=None
-        )
-        
-    except Exception as e:
-        print(f"Error in chat endpoint: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=f"Error processing chat: {str(e)}")
-
-@app.get("/scenarios", response_model=List[ScenarioInfo])
-async def get_scenarios():
-    """
-    Get available scenarios for the chatbot
-    """
-    scenarios = [
-        ScenarioInfo(
-            id="clock_in_issue",
-            name="Clock In Issue",
-            description="Help with clock in problems and schedule issues",
-            context_fields=["client_name", "caregiver_name", "clock_in_time", "location"]
-        ),
-        ScenarioInfo(
-            id="clock_out_issue", 
-            name="Clock Out Issue",
-            description="Assist with clock out difficulties and time tracking",
-            context_fields=["client_name", "caregiver_name", "clock_out_time", "hours_worked"]
-        ),
-        ScenarioInfo(
-            id="schedule_conflict",
-            name="Schedule Conflict",
-            description="Resolve scheduling conflicts and availability issues",
-            context_fields=["client_name", "caregiver_name", "conflict_date", "availability"]
-        ),
-        ScenarioInfo(
-            id="gps_location",
-            name="GPS Location Issue",
-            description="Help with GPS tracking and location verification",
-            context_fields=["client_name", "caregiver_name", "location", "gps_status"]
-        )
-    ]
-    return scenarios
-
 class StartSessionRequest(BaseModel):
     scenario_id: str
 
-@app.post("/start-session")
-async def start_session(request: StartSessionRequest):
-    """
-    Start a new chat session with a specific scenario
-    """
-    try:
-        # Initialize a new session with the selected scenario
-        initial_state = {
-            "messages": [],
-            "session_id": f"session_{os.urandom(8).hex()}",
-            "scenario_id": request.scenario_id,
-            "context_data": {}
-        }
-        
-        # You could store this in a session store here
-        return {
-            "session_id": initial_state["session_id"],
-            "scenario_id": request.scenario_id,
-            "message": "Session started successfully"
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error starting session: {str(e)}")
+class ChatRequest(BaseModel):
+    message: str
+    session_id: str
+    scenario_id: Optional[str] = None
+    context_data: Optional[Dict] = {}
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        app, 
-        host=Config.HOST, 
-        port=Config.PORT,
-        reload=Config.DEBUG
-    ) 
+class UpdateContextRequest(BaseModel):
+    session_id: str
+    context_data: Dict[str, str]
+
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
+
+@app.get("/scenarios")
+def get_scenarios():
+    return [
+        {"id": "general_chat", "name": "General Chat", "description": "Test generic conversation", "context_fields": []},
+        {
+            "id": "no_schedule",
+            "name": "No Schedule on Calendar",
+            "description": "Caregiver clocked in but no schedule appears on calendar",
+            "context_fields": ["client_name", "caregiver_name", "regular_schedule", "office_location"]
+        },
+        {
+            "id": "out_of_window",
+            "name": "Out of Window (Late Clock In)",
+            "description": "Caregiver clocked in late for their shift",
+            "context_fields": ["client_name", "caregiver_name", "scheduled_start_time", "actual_start_time", "shift_duration", "office_location", "late_reason"]
+        },
+        {
+            "id": "gps_out_of_range",
+            "name": "GPS Signal Out of Range",
+            "description": "Caregiver clocked in outside client's service area",
+            "context_fields": ["client_name", "caregiver_name", "client_address", "clock_in_location", "office_state", "errand_details"]
+        },
+        {
+            "id": "wrong_phone",
+            "name": "Call From Caregiver Number",
+            "description": "Caregiver used IVR number from their phone instead of client's house phone",
+            "context_fields": ["client_name", "caregiver_name", "client_phone", "caregiver_phone", "ivr_number"]
+        },
+        {
+            "id": "phone_not_found",
+            "name": "Phone Number Not Found",
+            "description": "Caregiver used unregistered phone number",
+            "context_fields": ["client_name", "caregiver_name", "new_phone_number", "old_phone_number", "phone_owner"]
+        }
+    ]
+
+@app.post("/start-session")
+def start_session(data: StartSessionRequest):
+    session_id = f"session_{uuid4().hex}"
+    sessions[session_id] = {
+        "messages": [],
+        "scenario_id": data.scenario_id,
+        "context_data": {},
+    }
+    
+    # Get scenario info for the response
+    scenario_info = {
+        "id": data.scenario_id,
+        "name": "General Chat" if data.scenario_id == "general_chat" else "Caregiver Support",
+        "description": "Professional assistance for caregiver issues"
+    }
+    
+    return {
+        "session_id": session_id, 
+        "scenario_id": data.scenario_id, 
+        "message": f"Session started for {scenario_info['name']}"
+    }
+
+@app.post("/chat")
+def chat(request: ChatRequest):
+    session = sessions.get(request.session_id)
+    if not session:
+        return {"message": "Invalid session", "is_complete": True}
+
+    # Add user message as LangChain HumanMessage
+    human_message = HumanMessage(content=request.message)
+    session["messages"].append(human_message)
+
+    # Prepare state for LangGraph
+    state = {
+        "messages": session["messages"],
+        "scenario_id": session.get("scenario_id", "general_chat"),
+        "context_data": session.get("context_data", {})
+    }
+
+    result = chat_graph.invoke(state, config={"thread_id": request.session_id})
+
+    # Extract bot message from the result
+    if "messages" in result and result["messages"]:
+        # Get the last message which should be the AI response
+        last_message = result["messages"][-1]
+        if hasattr(last_message, 'content'):
+            bot_response = last_message.content
+        else:
+            bot_response = str(last_message)
+    else:
+        bot_response = "I didn't get that."
+
+    # Append bot response to history
+    ai_message = AIMessage(content=bot_response)
+    session["messages"].append(ai_message)
+
+    return {
+        "message": bot_response,
+        "session_id": request.session_id,
+        "is_complete": False,
+        "extracted_data": None,
+    }
+
+@app.post("/update-context")
+def update_context(request: UpdateContextRequest):
+    session = sessions.get(request.session_id)
+    if not session:
+        return {"error": "Invalid session"}
+    
+    # Update context data
+    session["context_data"].update(request.context_data)
+    
+    return {
+        "session_id": request.session_id,
+        "context_data": session["context_data"],
+        "message": "Context updated successfully"
+    }
