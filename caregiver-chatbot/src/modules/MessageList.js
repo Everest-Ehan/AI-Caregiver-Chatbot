@@ -35,13 +35,42 @@ export default function MessageList(initialMessages = []) {
     return [...messages];
   }
 
+  function addTypingIndicator() {
+    const typingDiv = document.createElement('div');
+    typingDiv.className = 'chatbot-message chatbot-message--agent typing-indicator';
+    typingDiv.innerHTML = `
+      <div class="chatbot-message-meta">
+        <span class="chatbot-message-sender">Support</span>
+        <span class="chatbot-message-time">${formatTime(new Date().toISOString())}</span>
+      </div>
+      <div class="chatbot-message-text">
+        <div class="typing-dots">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </div>
+    `;
+    element.appendChild(typingDiv);
+    element.scrollTop = element.scrollHeight;
+    return typingDiv;
+  }
+
+  function removeTypingIndicator(typingIndicator) {
+    if (typingIndicator && typingIndicator.parentNode) {
+      typingIndicator.parentNode.removeChild(typingIndicator);
+    }
+  }
+
   render();
 
   return {
     element,
     addMessage,
     clear,
-    getMessages
+    getMessages,
+    addTypingIndicator,
+    removeTypingIndicator
   };
 }
 
