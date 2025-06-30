@@ -88,7 +88,12 @@ export default function Chatbot() {
             text: response.message,
             timestamp: new Date().toISOString()
           });
-          updateContextFields(scenario.id);
+          
+          // Wait a bit for the scenario to be set, then update context fields
+          setTimeout(() => {
+            updateContextFields(scenario.id);
+          }, 100);
+          
           const scenarioObj = await engine.getCurrentScenario();
           if (scenarioObj) {
             scenarioSelectorHeader.querySelector('.scenario-selector-title').textContent = scenarioObj.name;
@@ -264,9 +269,16 @@ export default function Chatbot() {
 
   function updateContextFields(scenarioId) {
     const contextInputsContainer = contextSection.querySelector('#contextInputs');
-    const scenario = engine.getCurrentScenario();
     
-    if (!scenario || !scenario.contextFields) {
+    console.log('updateContextFields called with scenarioId:', scenarioId);
+    console.log('Current scenario:', engine.getCurrentScenario());
+    
+    // Get context fields from the engine
+    const contextFields = engine.getCurrentScenarioContextFields();
+    console.log('Context fields:', contextFields);
+    
+    if (!contextFields || Object.keys(contextFields).length === 0) {
+      console.log('No context fields found, showing default message');
       contextInputsContainer.innerHTML = `
         <div class="input-group">
           <label>Select a scenario to see relevant context fields</label>
@@ -280,7 +292,7 @@ export default function Chatbot() {
     contextInputsContainer.innerHTML = '';
 
     // Create inputs for each context field
-    Object.entries(scenario.contextFields).forEach(([fieldKey, fieldConfig]) => {
+    Object.entries(contextFields).forEach(([fieldKey, fieldConfig]) => {
       const inputGroup = document.createElement('div');
       inputGroup.className = 'input-group';
       
@@ -293,7 +305,7 @@ export default function Chatbot() {
       const input = document.createElement('input');
       input.type = 'text';
       input.id = fieldKey;
-      input.placeholder = fieldConfig.placeholder;
+      input.placeholder = fieldConfig.placeholder || `Enter ${fieldConfig.label.toLowerCase()}`;
       input.required = fieldConfig.required;
       
       // Set default value if available in engine context

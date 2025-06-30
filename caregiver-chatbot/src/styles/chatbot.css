@@ -28,8 +28,6 @@
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(20px);
   border-right: 1px solid rgba(255, 255, 255, 0.3);
-  display: flex;
-  flex-direction: column;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
@@ -455,6 +453,7 @@
 
 .chatbot-message-time {
   opacity: 0.8;
+  margin: 0 2px;
 }
 
 /* Input */

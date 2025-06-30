@@ -70,23 +70,32 @@ export default class ChatbotEngine {
   }
 
   getCurrentScenarioContextFields() {
+    console.log('getCurrentScenarioContextFields called');
+    console.log('Current scenario:', this.currentScenario);
+    console.log('Use backend:', this.useBackend);
+    
     if (!this.currentScenario) {
+      console.log('No current scenario, returning empty object');
       return {};
     }
     
     if (this.useBackend && this.currentScenario.context_fields) {
+      console.log('Using backend context fields:', this.currentScenario.context_fields);
       // Convert backend context fields to frontend format
       const contextFields = {};
       this.currentScenario.context_fields.forEach(field => {
         contextFields[field] = {
           label: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          placeholder: `Enter ${field.replace(/_/g, ' ').toLowerCase()}`,
           type: 'text',
           required: false
         };
       });
+      console.log('Converted context fields:', contextFields);
       return contextFields;
     }
     
+    console.log('Using frontend context fields:', this.currentScenario.contextFields);
     return this.currentScenario.contextFields || {};
   }
 

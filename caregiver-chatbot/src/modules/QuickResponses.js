@@ -163,6 +163,15 @@ export default function QuickResponses(onResponseSelect) {
     }
   }
 
+  // Add quick responses header
+  const quickResponsesHeader = document.createElement('div');
+  quickResponsesHeader.className = 'panel-header';
+  quickResponsesHeader.innerHTML = `
+    <h3>Quick Responses</h3>
+    <p>Select a response to quickly reply</p>
+  `;
+  container.appendChild(quickResponsesHeader);
+
   container.appendChild(categoryBubbles);
   container.appendChild(responsesContainer);
 
