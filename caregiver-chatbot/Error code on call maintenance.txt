@@ -1,0 +1,211 @@
+Error code on call maintenance
+ 
+No schedule on the calendar 
+                                                                       
+Agent: Hello, this is Rosella, I am calling from Independence Care, how are you doing today?
+Caregiver: I am doing well! How are you?
+Agent: I am also doing good. Thank you very much for asking.
+Agent: I see you clocked in but there seems to be no schedule on your Calander, can you confirm the client you are working with today? 
+Caregiver: yeah, I didn’t see (clients name) on the calendar, but I work for (clients name) every Monday through Friday 9am to 5pm. Should I leave?
+Agent: No, please do not leave. Unfortunately, the app can malfunction at times and remove Caregivers from schedules. I will add you to the schedule and clock you in, if for any reason this causes an error your coordinator will reach out to you to clarify.
+
+Scenario 2:
+Agent: Hello, this is Rosella, I am calling from Independence Care, how are you doing today?
+Caregiver: Hi, I am doing okay, how are you?
+Agent: I am well, thank you for asking. I see you clocked in but do not currently have a schedule. Can you confirm the client you clocked in for?
+Caregiver: (Client's name)
+Agent: Thank you for confirming, Is this your regular schedule?
+Caregiver: No, this is not my regular schedule. I usually do Mondays, Wednesdays and Fridays but the client asked me to come in today (Tuesday).
+Agent: Okay, thank you for letting me know. You will have to remove one of your visits from the schedule this week, would you like to remove Wednesday or Friday?
+Caregiver: Friday.
+Agent: Okay, no problem. Can you just bring the client to the phone, so I can confirm the change with him?
+Caregiver: Sure... “Helloo”
+Agent: Hi, can you state your name for me?
+Caregiver: (clients name)
+Agent: Okay wonderful, Mr.(clients name) because your aide came today, we will need to adjust your schedule so that you do not over service your authorization. Can you confirm that the Caregiver can swap any other day of the week for today?
+Caregiver: Yes that is fine.
+Agent: Great, your caregiver will be with you today and will no longer be scheduled Friday from 9am to 5pm. Can I help you with anything else?
+Caregiver: NO
+Agent: Okay, have a great day!
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+2: Out of window
+Agent: Hello, this is Rosella, I am calling from Independence Care, how are you doing today!
+Caregiver: I am doing good! How are you doing today?
+Agent: I am also doing good. Thank you very much for asking.
+Agent: I have noticed that you clocked in late for your shift today, I just wanted to confirm what was the reason for that? 
+Caregiver: Yes, I was actually here on time, but I forgot to clock in. 
+Agent: Ohh! I totally understand, can you tell me what time you are coming today? 
+Caregiver: 9am
+Agent: Thats great, can you also put the client on the phone so we can confirm with them?
+Caregiver: Yes, here she is you can ask her, and she will confirm it. 
+Agent: Hi, can you state your name? 
+Caregiver: “clients name”
+Agent: Great, can you confirm what time your aide showed up today?
+Caregiver: 5 minutes after 9.
+Agent: Great, thank you. We will adjust the schedule for a start time of 9:05. We will adjust the scheduled clock out time for 17:05, so you do not lose any hours today. Can you put your aide back on the phone please?
+Caregiver: Hello?
+Agent: Hi, so the client confirmed you showed up at 9:05 so your schedule has been adjusted to reflect that arrival time. Moving forward, I want to let you know that we are not allowed to make any changes to any clock in or clock out time. So, going forward please make sure you are very careful with your clock in and clock out because we will not be able to adjust them due to (office location) state law. 
+Agent: Thank you, have a good day!
+Caregiver: Thank you, you too.
+ 
+2nd scenario: 
+Agent: Hello, this is Rosella, I am calling from Independence Care, how are you doing today!
+Caregiver: I am doing good! How are you doing today?
+Agent: I am also doing good. Thank you very much for asking.
+Agent: I have noticed that you clocked in late for your shift today, I just wanted to confirm what was the reason for that? 
+Caregiver: I came in late today!
+Agent: Ohh!! Okay, can you tell me what the reason was you came in late?
+Caregiver: I woke up late today or I had a doctor’s appointment this morning or client asked me to come in late because she had to go somewhere in the morning. 
+Agent: Okay, would you be willing to make up for the hours you missed today by staying late on your shift today? Or any other day throughout the week?
+Caregiver: Yes, I would like that!
+Agent: Sounds good, I will go ahead and update your schedule, until what time can you stay today?
+Caregiver: Can I stay late on Tuesday to make up for the hours I missed today? 
+Agent: Yes, I will go ahead and adjust your schedule to reflect the change. 
+ 
+ 
+3rd scenario: 
+ 
+Agent: Hello, this is Rosella, I am calling from Independence Care, how are you doing today!
+Caregiver: I am doing good! How are you doing today?
+Agent: I am also doing good. Thank you very much for asking.
+Agent: I have noticed that you clocked in late for your shift today, I just wanted to confirm what was the reason for that? 
+Caregiver: I came in late today!
+Agent: Ohh!! Okay, can you tell me what the reason was you came in late!
+Caregiver: I woke up late today or I had a doctor’s appointment this morning or client asked me to come in late because she had to go somewhere in the morning. 
+Agent: Okay, would you be willing to make up for the hours you missed today by staying late on your shift today? Or any other day throughout the week?
+Caregiver: No, I can’t right now but I can anytime later this week, I will call and let you guys know. 
+Agent: Totally understand! If you decide you make up your hours, please feel free to let us know. 
+Agent: Thank you, have a good day. 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+3:GPS Signal Out of Range
+ 
+ 
+Agent: Hello, this is Rosella, I am calling from Independence Care, how are you doing today!
+Caregiver: I am doing good! How are you doing today?
+Agent: I am also doing good. Thank you very much for asking.
+Agent: I have noticed you have clocked in outside of the client's service area, which is not close to your client’s house. Can you please clock in again once you are at your client’s house, because we are not able to accept this clock in. 
+Caregiver: I clocked in at my client’s house, it’s the apps fault 
+Agent: I am sorry to hear that but it can’t be the applications fault because all of our CG’s are using the same application and this does not seem to be the issues with anyone else at the moment, but can you try to clock in again and make sure are you inside your client’s house. 
+Caregiver: No, I can’t, the app won’t allow me!
+Agent: Ohh! Okay there should be an option in your app called unscheduled visit’s try doing it from there and see it if lets you!
+Caregiver: Okay, I will try it again. 
+Agent: Thank you, please feel free to reach us if you come across any problems. 
+Agent: Remember it is (office state) law that a Home Care agency cannot bill for visits that are rendered outside of the client's home. 
+ 
+2nd scenario: 
+Agent: Hello, this is Rosella, I am calling from Independence Care, how are you doing today!
+Caregiver: I am doing good! How are you doing today?
+Agent: I am also doing good. Thank you very much for asking.
+Agent: I have noticed your clock out is outside of the client's service area, and we are not able to accept that. Can you please go back and clock out from your client’s house? Because we can’t complete the visit without your clock out. 
+
+Caregiver: I have already left my client's house, and I am not able to go back!
+Agent: I apologize for the inconvenience this causes but we will not be able to mark your shift as completed without a clock out, so it is really important. Again, I apologize for the inconvenience this is causing. 
+ 
+Caregiver: Okay, I will go back and clock out for my shift. 
+Agent: Thank you very much and please make sure going forward you do your clock in/out when you are inside your client’s house. I recommend setting an alarm for yourself to avoid such issues in future. 
+Agent: Thank you very much! Have a good day!
+ 
+ 3rd scenario:
+Agent: Hello, this is Rosella, I am calling from Independence Care, how are you doing today!
+Caregiver: I am doing good! How are you doing today?
+Agent: I am also doing good. Thank you very much for asking.
+Agent: I have noticed you have clocked in outside of the client's service area, which is not close to your client’s house. Can you please clock in again once you are at your client’s house, because we are not able to accept this clock in.
+Caregiver: I stopped by on the way to the client’s house to pick up something for them, this is why my location is different today. 
+Agent: What did to have to pick up?
+Caregiver: I had to pick up some groceries and some medicine for them. 
+Agent: okay, can your client confirm that?
+Caregiver: Yes, you can call them and ask them about it. 
+Agent: (then call the client to confirm)
+Agent: Hello! This is Rosella calling from independence care, how are doing today!
+Client: Fine! How are you doing?
+Agent: I am doing good as well! Can you please confirm if you asked your caregiver to pick up some stuff for you today before they come in for their shift?
+Client: yes, I did 
+Agent: Can you tell me what you asked the Caregiver to pick up for you? 
+Client: (get the list of things)
+Agent: Thank you so much for confirming, can you please give us a call and let us know once the CG comes in. 
+
+
+
+
+
+Call From Caregiver Number
+
+Agent: Hello, this is Rosella, I am calling from Independence Care, how are you doing today!
+Caregiver: I am doing good! How are you doing today?
+Agent: I am also doing good. Thank you very much for asking. I have noticed that you used the IVR number to clock in today, but you used your phone to call that number instead of the client's house phone. Can you please clock in again using the client’s house phone? 
+Caregiver: sorry, I wasn't aware, but I will do that right now! Thank you. 
+Agent: No problem! Please feel free to call us if you have any other issues. 
+
+2nd scenario:
+Agent: Hello, this is Rosella, I am calling from Independence Care, how are you doing today!
+Caregiver: I am doing good! How are you doing today?
+Agent: I am also doing good. Thank you very much for asking. I have noticed that you used the IVR number to clock in today, but you used your phone to call that number instead of the client's house phone. Can you please clock in again using the client’s house phone?
+Caregiver: Client won't allow me to use their phone. 
+Agent: Thats unfortunate, in this situation I would recommend you use the HHA app to clock in.
+Caregiver: my app doesn't work.  
+Agent: Okay, for that I can have one of our care coordinator’s give you a call and get your HHA app set up. Does that sound good to you?
+
+Caregiver: Yes, that would be helpful!
+Agent: Great! I will rely on this message to them, and someone will contact you shortly, is there anything else I can assist you with today?
+Caregiver: No, I think that will be all for now!
+Agent: Okay, then you have a good day ahead. Take care, bye!
+
+
+Phone Number Not Found
+
+Agent: Hello, this is Rosella, I am calling from Independence Care, how are you doing today!
+Caregiver: I am doing good! How are you doing today?
+Agent: I am also doing good, thank you for asking. I have noticed that you have clocked in using a phone number that is not registered with us. Can you confirm whose number this is? (says the phone number)
+Caregiver: Yes, this is my client's new phone number. 
+Agent: Okay, can your client confirm that?
+Caregiver: Yes, they can!
+Agent: perfect! Can you get your client on the phone?
+Caregiver: Yes, here they are!
+Agent: Hello, this is Rosella from Independence Care, how are you doing today?
+Caregiver: fine!
+Agent: That's great to hear. Can you please confirm who I am talking to? 
+Caregiver: Client says their name (clients name)
+Agent: perfect! I just wanted to confirm if this is your new phone (say’s the number) 
+Caregiver: Yes, this is my number. 
+Agent: great and will this be the number your caregiver will be using to clock in going forward?
+Caregiver: Yes, I think so!
+Agent: sounds great! Then I will make sure this gets updated in your profile. Thank you for your time. You guys have a good day.
+
+
+Duplicate call
+
+This situation caregiver accidently clock’s in or out more than 1 time, in this case no call needs to be made, and we can simply reject the call. 
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+
