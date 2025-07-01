@@ -9,8 +9,8 @@ services:
     envVars:
       - key: OPENAI_API_KEY
         sync: false
-    buildCommand: docker build -t backend .
-    startCommand: docker run -p $PORT:8000 backend
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
 
   # Frontend Web Service
   - type: web
@@ -19,8 +19,8 @@ services:
     region: oregon
     plan: starter
     healthCheckPath: /
-    buildCommand: docker build -f caregiver-chatbot/Dockerfile -t frontend caregiver-chatbot/
-    startCommand: docker run -p $PORT:80 frontend
+    dockerfilePath: ./caregiver-chatbot/Dockerfile
+    dockerContext: ./caregiver-chatbot
     envVars:
       - key: REACT_APP_API_URL
         value: https://caregiver-chatbot-backend.onrender.com 
