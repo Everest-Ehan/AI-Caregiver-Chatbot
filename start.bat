@@ -14,7 +14,8 @@ echo ✓ Python found
 echo.
 echo [2/3] Starting Backend Server...
 cd backend
-start "Backend Server" cmd /k "python run.py"
+call venv\Scripts\activate.bat
+start "Backend Server" cmd /k "call venv\\Scripts\\activate.bat && python run.py"
 cd ..
 
 echo.
