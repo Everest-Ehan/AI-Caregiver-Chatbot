@@ -78,8 +78,7 @@ This guide will help you deploy your AI Caregiver Chatbot with the frontend on V
    - **Environment**: `Docker`
    - **Region**: Choose closest to your users
    - **Branch**: `main` (or your default branch)
-   - **Dockerfile Path**: `./backend/Dockerfile`
-   - **Docker Context**: `./backend`
+   - **Root Directory**: `backend` (this is the key setting!)
 
 3. **Environment Variables**:
    - Go to Environment → Environment Variables
