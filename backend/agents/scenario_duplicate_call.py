@@ -3,9 +3,9 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from .utils_context_extraction import extract_context_field
 
 def duplicate_call_node(state):
-    print("duplicate call node")
     llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
     context = state.get("context_data", {})
+    
     substep = context.get("substep", "greet")
     messages = state["messages"]
     user_input = None

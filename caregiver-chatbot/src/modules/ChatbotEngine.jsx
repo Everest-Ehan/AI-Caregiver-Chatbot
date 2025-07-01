@@ -1,67 +1,52 @@
 import { scenarios, responseMappings } from '../data/scenarios.js';
-import apiService from '../services/api.js';
+import apiService from '../services/api.jsx';
 
 export default class ChatbotEngine {
   constructor() {
     this.currentScenario = null;
     this.currentStep = 0;
     this.conversationHistory = [];
-    this.context = {
-      clientName: 'John Doe',
-      phoneNumber: '555-1234',
-      officeLocation: 'Main Office',
-      officeState: 'California',
-      adjustedTime: '9:05',
-      adjustedEndTime: '17:05'
-    };
+    this.context = {};
     this.useBackend = true; // Flag to control backend vs frontend processing
     this.sessionId = null;
     this.onContextUpdate = null; // Callback for UI updates
-    
-    // Check backend health on initialization
     this.checkBackendHealth();
   }
 
   async startScenario(scenarioId) {
     try {
       if (this.useBackend) {
-        // Use backend API
         const sessionResponse = await apiService.startSession(scenarioId);
-        
-        // Store session ID
         this.sessionId = sessionResponse.session_id;
-        
-        // Get scenarios from backend to find the selected one
         const scenarios = await apiService.getScenarios();
         const scenario = scenarios.find(s => s.id === scenarioId);
-        
         if (scenario) {
           this.currentScenario = scenario;
         }
+        // Reset context for new scenario - start with empty context
+        this.context = {};
         
-        // Send initial message to start conversation
+        // Explicitly reset the backend context to ensure it's completely cleared
+        await apiService.resetSessionContext(this.sessionId, {});
+        
         const response = await apiService.sendMessage(
           "Hello, I need help with my issue",
           scenarioId,
           this.context
         );
-        
         return {
           message: response.message,
           stepId: 'initial',
           isComplete: response.is_complete || false
         };
       } else {
-        // Fallback to frontend processing
         const scenario = scenarios[scenarioId];
         if (!scenario) {
           throw new Error(`Unknown scenario: ${scenarioId}`);
         }
-
         this.currentScenario = scenario;
         this.currentStep = 0;
         this.conversationHistory = [];
-
         const firstStep = scenario.steps[0];
         return {
           message: this.processMessage(firstStep.agent),
@@ -71,25 +56,14 @@ export default class ChatbotEngine {
       }
     } catch (error) {
       console.error('Error starting scenario:', error);
-      // Fallback to frontend processing
       this.useBackend = false;
       return this.startScenario(scenarioId);
     }
   }
 
   getCurrentScenarioContextFields() {
-    console.log('getCurrentScenarioContextFields called');
-    console.log('Current scenario:', this.currentScenario);
-    console.log('Use backend:', this.useBackend);
-    
-    if (!this.currentScenario) {
-      console.log('No current scenario, returning empty object');
-      return {};
-    }
-    
+    if (!this.currentScenario) return {};
     if (this.useBackend && this.currentScenario.context_fields) {
-      console.log('Using backend context fields:', this.currentScenario.context_fields);
-      // Convert backend context fields to frontend format
       const contextFields = {};
       this.currentScenario.context_fields.forEach(field => {
         contextFields[field] = {
@@ -99,11 +73,8 @@ export default class ChatbotEngine {
           required: false
         };
       });
-      console.log('Converted context fields:', contextFields);
       return contextFields;
     }
-    
-    console.log('Using frontend context fields:', this.currentScenario.contextFields);
     return this.currentScenario.contextFields || {};
   }
 
@@ -114,16 +85,13 @@ export default class ChatbotEngine {
   async processUserInput(userInput) {
     try {
       if (this.useBackend) {
-        // Use backend API
         const response = await apiService.sendMessage(
           userInput,
           this.currentScenario?.id,
           this.context
         );
-        // Merge backend context_data into frontend context
         if (response.context_data) {
           this.context = { ...this.context, ...response.context_data };
-          // Notify UI that context has been updated
           if (this.onContextUpdate) {
             this.onContextUpdate();
           }
@@ -134,14 +102,12 @@ export default class ChatbotEngine {
           extractedData: response.extracted_data
         };
       } else {
-        // Fallback to frontend processing
         if (!this.currentScenario) {
           return {
             message: 'Please select a scenario to begin.',
             isComplete: false
           };
         }
-
         const currentStep = this.currentScenario.steps[this.currentStep];
         if (!currentStep) {
           return {
@@ -149,47 +115,32 @@ export default class ChatbotEngine {
             isComplete: true
           };
         }
-
-        // Add user message to history
         this.conversationHistory.push({
           sender: 'user',
           text: userInput,
           timestamp: new Date().toISOString()
         });
-
-        // Check if user input matches expected responses
         const matchedResponse = this.matchResponse(userInput, currentStep.expectedResponses);
-        
         if (!matchedResponse) {
-          // If no match, ask for clarification
           return {
             message: 'I didn\'t understand that. Could you please rephrase your response?',
             isComplete: false
           };
         }
-
-        // Move to next step
         this.currentStep++;
-
-        // Check if conversation is complete
         if (this.currentStep >= this.currentScenario.steps.length) {
           return {
             message: 'Thank you for your time. Have a great day!',
             isComplete: true
           };
         }
-
-        // Get next step
         const nextStep = this.currentScenario.steps[this.currentStep];
         const response = this.processMessage(nextStep.agent);
-
-        // Add agent message to history
         this.conversationHistory.push({
           sender: 'agent',
           text: response,
           timestamp: new Date().toISOString()
         });
-
         return {
           message: response,
           stepId: nextStep.id,
@@ -198,7 +149,6 @@ export default class ChatbotEngine {
       }
     } catch (error) {
       console.error('Error processing user input:', error);
-      // Fallback to frontend processing
       this.useBackend = false;
       return this.processUserInput(userInput);
     }
@@ -206,22 +156,18 @@ export default class ChatbotEngine {
 
   matchResponse(userInput, expectedResponses) {
     const input = userInput.toLowerCase().trim();
-    
     for (const responseType of expectedResponses) {
       const mappings = responseMappings[responseType] || [responseType];
-      
       for (const mapping of mappings) {
         if (input.includes(mapping.toLowerCase())) {
           return responseType;
         }
       }
     }
-    
     return null;
   }
 
   processMessage(message) {
-    // Replace placeholders with context values
     return message
       .replace('{client_name}', this.context.clientName || this.context.client_name || 'Client')
       .replace('{phone_number}', this.context.phoneNumber || this.context.phone_number || '555-1234')
@@ -240,16 +186,12 @@ export default class ChatbotEngine {
   async getAvailableScenarios() {
     try {
       if (this.useBackend) {
-        // Get scenarios from backend (return full objects)
         const scenarios = await apiService.getScenarios();
         return scenarios;
       } else {
-        // Fallback to frontend scenarios
         return Object.values(scenarios);
       }
     } catch (error) {
-      console.error('Error getting scenarios:', error);
-      // Fallback to frontend scenarios
       this.useBackend = false;
       return Object.values(scenarios);
     }
@@ -260,29 +202,21 @@ export default class ChatbotEngine {
   }
 
   async updateContext(newContext) {
-    // Convert field keys to context keys and merge
     const convertedContext = {};
     Object.entries(newContext).forEach(([key, value]) => {
-      // Handle both camelCase and snake_case keys
       const contextKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
       convertedContext[contextKey] = value;
-      // Also keep original key for backward compatibility
       convertedContext[key] = value;
     });
-    
     this.context = { ...this.context, ...convertedContext };
-    
-    // Notify UI that context has been updated
     if (this.onContextUpdate) {
       this.onContextUpdate();
     }
-    
-    // Send context update to backend if we have a session
     if (this.currentScenario && this.sessionId) {
       try {
         await apiService.updateContext(this.sessionId, convertedContext);
       } catch (error) {
-        console.error('Error updating context on backend:', error);
+        // ignore
       }
     }
   }
@@ -293,7 +227,6 @@ export default class ChatbotEngine {
       this.useBackend = isHealthy;
       return isHealthy;
     } catch (error) {
-      console.error('Backend health check failed:', error);
       this.useBackend = false;
       return false;
     }
@@ -303,6 +236,7 @@ export default class ChatbotEngine {
     this.currentScenario = null;
     this.currentStep = 0;
     this.conversationHistory = [];
+    this.context = {}; // Reset to completely empty context
     apiService.resetSession();
   }
 } 

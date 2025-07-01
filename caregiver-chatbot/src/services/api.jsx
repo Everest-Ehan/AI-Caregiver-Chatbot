@@ -129,7 +129,7 @@ class ApiService {
       if (response.session_id) {
         this.sessionId = response.session_id;
       }
-      console.log("response", response)
+
       return response;
     } catch (error) {
       console.error('Failed to send message:', error);
@@ -179,6 +179,26 @@ class ApiService {
       return response;
     } catch (error) {
       console.error('Failed to update context:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Reset session context data completely
+   */
+  async resetSessionContext(sessionId, contextData) {
+    try {
+      const response = await this.makeRequest('/reset-session-context', {
+        method: 'POST',
+        body: JSON.stringify({
+          session_id: sessionId,
+          context_data: contextData
+        }),
+      });
+      
+      return response;
+    } catch (error) {
+      console.error('Failed to reset session context:', error);
       throw error;
     }
   }

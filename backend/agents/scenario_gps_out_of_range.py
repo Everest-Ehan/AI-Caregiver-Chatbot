@@ -3,7 +3,6 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from .utils_context_extraction import extract_context_field
 
 def gps_out_of_range_node(state):
-    print("gps out of range node")
     llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
     context = state.get("context_data", {})
     substep = context.get("substep", "greet")

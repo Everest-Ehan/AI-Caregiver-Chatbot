@@ -15,9 +15,7 @@ def extract_context_field(user_input, field_name, optionalMessage=""):
     if len(lines) > 2:
         content = '\n'.join(lines[1:-1]).strip()
     try:
-        print(content)
         data = json.loads(content)
-        print("data", data)
         if isinstance(data, dict):
             return data
     except Exception:

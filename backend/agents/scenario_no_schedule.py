@@ -3,7 +3,6 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from .utils_context_extraction import extract_context_field
 
 def no_schedule_node(state):
-    print("no schedule node")
     llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
     context = state.get("context_data", {})
     substep = context.get("substep", "greet")
@@ -23,7 +22,6 @@ def no_schedule_node(state):
     if substep == "get_client_name":
         if not context.get("client_name") and user_input:
             extracted = extract_context_field(user_input, "client_name")
-            print("extracted", extracted)
             if extracted.get("client_name"):
                 context["client_name"] = extracted["client_name"]
         if not context.get("client_name"):

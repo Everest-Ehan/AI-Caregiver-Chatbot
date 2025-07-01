@@ -40,7 +40,6 @@ def health_check():
 
 @app.get("/scenarios")
 def get_scenarios():
-    print("getting scenarios")
     return [
         {"id": "general_chat", "name": "General Chat", "description": "Test generic conversation", "context_fields": []},
         {
@@ -87,7 +86,7 @@ def start_session(data: StartSessionRequest):
     sessions[session_id] = {
         "messages": [],
         "scenario_id": data.scenario_id,
-        "context_data": {},
+        "context_data": {},  # Start with completely empty context
     }
     
     # Get scenario info for the response
@@ -172,4 +171,19 @@ def update_context(request: UpdateContextRequest):
         "session_id": request.session_id,
         "context_data": session["context_data"],
         "message": "Context updated successfully"
+    }
+
+@app.post("/reset-session-context")
+def reset_session_context(request: UpdateContextRequest):
+    session = sessions.get(request.session_id)
+    if not session:
+        return {"error": "Invalid session"}
+    
+    # Completely reset context data to the provided data
+    session["context_data"] = request.context_data
+    
+    return {
+        "session_id": request.session_id,
+        "context_data": session["context_data"],
+        "message": "Session context reset successfully"
     }

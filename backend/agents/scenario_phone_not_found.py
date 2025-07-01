@@ -3,7 +3,6 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from .utils_context_extraction import extract_context_field
 
 def phone_not_found_node(state):
-    print("phone not found node")
     llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
     context = state.get("context_data", {})
     substep = context.get("substep", "greet")
@@ -14,8 +13,7 @@ def phone_not_found_node(state):
             user_input = msg.content
             break
 
-    
-    print(substep)
+
     # Step 1: Greet and identify unregistered phone
     if substep == "greet":
         phone_number = context.get("unregistered_phone", "this number")

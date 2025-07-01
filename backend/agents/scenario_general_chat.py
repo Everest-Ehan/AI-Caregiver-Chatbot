@@ -3,7 +3,6 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from .utils_context_extraction import extract_context_field
 
 def general_chat_node(state):
-    print("general chat node")
     llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
     context = state.get("context_data", {})
     substep = context.get("substep", "greet")
