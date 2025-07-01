@@ -1,12 +1,22 @@
 # backend/caregiver_agent.py
 
-from langgraph.graph import StateGraph
+from langgraph.graph import StateGraph, END
 from langchain.schema import HumanMessage, SystemMessage
 from langchain_openai.chat_models import ChatOpenAI
-from typing import TypedDict, Annotated
+from typing_extensions import TypedDict
+from typing import Annotated
+import operator
+
+from .scenario_no_schedule import no_schedule_node
+from .scenario_out_of_window import out_of_window_node
+from .scenario_gps_out_of_range import gps_out_of_range_node
+from .scenario_wrong_phone import wrong_phone_node
+from .scenario_phone_not_found import phone_not_found_node
+from .scenario_duplicate_call import duplicate_call_node
+from .scenario_general_chat import general_chat_node
 
 class ChatState(TypedDict):
-    messages: list
+    messages: Annotated[list, operator.add]
     scenario_id: str
     context_data: dict
 
@@ -77,9 +87,49 @@ def generate_reply(state: ChatState):
     response = llm.invoke(conversation)
     return {"messages": state["messages"] + [response]}
 
+def route_scenario(state: ChatState) -> str:
+    scenario = state.get("scenario_id", "general_chat")
+    if scenario == "no_schedule":
+        return "no_schedule"
+    elif scenario == "out_of_window":
+        return "out_of_window"
+    elif scenario == "gps_out_of_range":
+        return "gps_out_of_range"
+    elif scenario == "wrong_phone":
+        return "wrong_phone"
+    elif scenario == "phone_not_found":
+        return "phone_not_found"
+    elif scenario == "duplicate_call":
+        return "duplicate_call"
+    else:
+        return "general_chat"
+
 builder = StateGraph(ChatState)
-builder.add_node("generate_reply", generate_reply)
-builder.set_entry_point("generate_reply")
-builder.set_finish_point("generate_reply")
+builder.add_node("no_schedule", no_schedule_node)
+builder.add_node("out_of_window", out_of_window_node)
+builder.add_node("gps_out_of_range", gps_out_of_range_node)
+builder.add_node("wrong_phone", wrong_phone_node)
+builder.add_node("phone_not_found", phone_not_found_node)
+builder.add_node("duplicate_call", duplicate_call_node)
+builder.add_node("general_chat", general_chat_node)
+
+builder.set_entry_point("general_chat")
+builder.add_conditional_edges(
+    "general_chat", route_scenario,
+    {
+        "no_schedule": "no_schedule",
+        "out_of_window": "out_of_window",
+        "gps_out_of_range": "gps_out_of_range",
+        "wrong_phone": "wrong_phone",
+        "phone_not_found": "phone_not_found",
+        "duplicate_call": "duplicate_call",
+        "general_chat": "general_chat"
+    }
+)
+# Each scenario node can finish or loop as needed; for now, finish after each
+for node in ["no_schedule", "out_of_window", "gps_out_of_range", "wrong_phone", "phone_not_found", "duplicate_call"]:
+    builder.set_finish_point(node)
+builder.set_finish_point("general_chat")
+
 chat_graph = builder.compile()
 
