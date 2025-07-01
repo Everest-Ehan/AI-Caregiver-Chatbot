@@ -3,7 +3,7 @@
  */
 
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'http://localhost:8000'  // When running in Docker, backend is accessible on localhost:8000
+  ? (process.env.REACT_APP_API_URL || 'https://caregiver-chatbot-backend.onrender.com')  // Production API URL
   : 'http://localhost:8000'; // Development mode
 
 class ApiService {
