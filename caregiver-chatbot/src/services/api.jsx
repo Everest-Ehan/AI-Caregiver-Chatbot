@@ -2,7 +2,9 @@
  * API Service for communicating with the FastAPI backend
  */
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = process.env.NODE_ENV === 'production' 
+  ? 'http://localhost:8000'  // When running in Docker, backend is accessible on localhost:8000
+  : 'http://localhost:8000'; // Development mode
 
 class ApiService {
   constructor() {
