@@ -2,9 +2,7 @@
  * API Service for communicating with the FastAPI backend
  */
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? (process.env.REACT_APP_API_URL || 'https://caregiver-chatbot-backend.onrender.com')  // Production API URL
-  : 'http://localhost:8000'; // Development mode
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 class ApiService {
   constructor() {
