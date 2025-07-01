@@ -15,6 +15,11 @@ export default class ChatbotEngine {
       adjustedEndTime: '17:05'
     };
     this.useBackend = true; // Flag to control backend vs frontend processing
+    this.sessionId = null;
+    this.onContextUpdate = null; // Callback for UI updates
+    
+    // Check backend health on initialization
+    this.checkBackendHealth();
   }
 
   async startScenario(scenarioId) {
@@ -115,7 +120,14 @@ export default class ChatbotEngine {
           this.currentScenario?.id,
           this.context
         );
-        
+        // Merge backend context_data into frontend context
+        if (response.context_data) {
+          this.context = { ...this.context, ...response.context_data };
+          // Notify UI that context has been updated
+          if (this.onContextUpdate) {
+            this.onContextUpdate();
+          }
+        }
         return {
           message: response.message,
           isComplete: response.is_complete || false,
@@ -228,30 +240,18 @@ export default class ChatbotEngine {
   async getAvailableScenarios() {
     try {
       if (this.useBackend) {
-        // Get scenarios from backend
+        // Get scenarios from backend (return full objects)
         const scenarios = await apiService.getScenarios();
-        return scenarios.map(scenario => ({
-          id: scenario.id,
-          name: scenario.name,
-          description: scenario.description
-        }));
+        return scenarios;
       } else {
         // Fallback to frontend scenarios
-        return Object.values(scenarios).map(scenario => ({
-          id: scenario.id,
-          name: scenario.name,
-          description: scenario.description
-        }));
+        return Object.values(scenarios);
       }
     } catch (error) {
       console.error('Error getting scenarios:', error);
       // Fallback to frontend scenarios
       this.useBackend = false;
-      return Object.values(scenarios).map(scenario => ({
-        id: scenario.id,
-        name: scenario.name,
-        description: scenario.description
-      }));
+      return Object.values(scenarios);
     }
   }
 
@@ -271,6 +271,11 @@ export default class ChatbotEngine {
     });
     
     this.context = { ...this.context, ...convertedContext };
+    
+    // Notify UI that context has been updated
+    if (this.onContextUpdate) {
+      this.onContextUpdate();
+    }
     
     // Send context update to backend if we have a session
     if (this.currentScenario && this.sessionId) {

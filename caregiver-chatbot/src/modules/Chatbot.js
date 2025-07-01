@@ -10,6 +10,7 @@ export default function Chatbot() {
 
   const engine = new ChatbotEngine();
   let currentScenario = null;
+  let allScenarios = [];
 
   // Main Layout
   const mainLayout = document.createElement('div');
@@ -91,7 +92,7 @@ export default function Chatbot() {
           
           // Wait a bit for the scenario to be set, then update context fields
           setTimeout(() => {
-            updateContextFields(scenario.id);
+            updateContextFields();
           }, 100);
           
           const scenarioObj = await engine.getCurrentScenario();
@@ -123,6 +124,7 @@ export default function Chatbot() {
   async function loadScenarios() {
     try {
       const availableScenarios = await engine.getAvailableScenarios();
+      allScenarios = availableScenarios;
       renderScenarioCards(availableScenarios);
     } catch (error) {
       console.error('Error loading scenarios:', error);
@@ -266,90 +268,64 @@ export default function Chatbot() {
 
   // Initialize
   // scenarioSelector.updateScenarios(engine.getAvailableScenarios());
+  
+  // Set up context update callback
+  engine.onContextUpdate = () => {
+    updateContextFields();
+  };
 
-  function updateContextFields(scenarioId) {
+  function updateContextFields() {
     const contextInputsContainer = contextSection.querySelector('#contextInputs');
-    
-    console.log('updateContextFields called with scenarioId:', scenarioId);
-    console.log('Current scenario:', engine.getCurrentScenario());
-    
-    // Get context fields from the engine
-    const contextFields = engine.getCurrentScenarioContextFields();
-    console.log('Context fields:', contextFields);
-    
-    if (!contextFields || Object.keys(contextFields).length === 0) {
-      console.log('No context fields found, showing default message');
-      contextInputsContainer.innerHTML = `
-        <div class="input-group">
-          <label>Select a scenario to see relevant context fields</label>
-          <input type="text" disabled placeholder="No scenario selected">
-        </div>
-      `;
-      return;
-    }
+    // Build a master list of all possible fields from all scenarios
+    let allFields = {};
+    allScenarios.forEach(scenario => {
+      const fields = scenario.context_fields || scenario.contextFields;
+      if (fields) {
+        if (Array.isArray(fields)) {
+          fields.forEach(field => {
+            allFields[field] = {
+              label: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+              placeholder: `Enter ${field.replace(/_/g, ' ').toLowerCase()}`,
+              required: false
+            };
+          });
+        } else {
+          Object.entries(fields).forEach(([key, config]) => {
+            allFields[key] = config;
+          });
+        }
+      }
+    });
 
-    // Clear existing inputs
     contextInputsContainer.innerHTML = '';
-
-    // Create inputs for each context field
-    Object.entries(contextFields).forEach(([fieldKey, fieldConfig]) => {
+    Object.entries(allFields).forEach(([key, config]) => {
       const inputGroup = document.createElement('div');
       inputGroup.className = 'input-group';
-      
+
       const label = document.createElement('label');
-      label.textContent = fieldConfig.label;
-      if (fieldConfig.required) {
-        label.innerHTML += ' <span style="color: #ef4444;">*</span>';
-      }
-      
+      label.textContent = config.label || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
       const input = document.createElement('input');
       input.type = 'text';
-      input.id = fieldKey;
-      input.placeholder = fieldConfig.placeholder || `Enter ${fieldConfig.label.toLowerCase()}`;
-      input.required = fieldConfig.required;
-      
-      // Set default value if available in engine context
-      // Try both the original field key and converted context key
-      const contextKey = fieldKey.replace(/([A-Z])/g, '_$1').toLowerCase();
-      if (engine.context[fieldKey]) {
-        input.value = engine.context[fieldKey];
-      } else if (engine.context[contextKey]) {
-        input.value = engine.context[contextKey];
-      }
-      
-      // Add change event listener
+      input.id = key;
+      input.value = engine.context[key] || '';
+      input.placeholder = config.placeholder || `Enter ${label.textContent.toLowerCase()}`;
+
       input.addEventListener('change', () => {
-        updateEngineContext();
+        engine.updateContext({ [key]: input.value });
       });
-      
+
       inputGroup.appendChild(label);
       inputGroup.appendChild(input);
       contextInputsContainer.appendChild(inputGroup);
     });
   }
 
-  async function updateEngineContext() {
-    const contextInputsContainer = contextSection.querySelector('#contextInputs');
-    const inputs = contextInputsContainer.querySelectorAll('input');
-    const newContext = {};
-    
-    inputs.forEach(input => {
-      if (input.value.trim()) {
-        // Store both the original field key and converted context key
-        newContext[input.id] = input.value.trim();
-        const contextKey = input.id.replace(/([A-Z])/g, '_$1').toLowerCase();
-        newContext[contextKey] = input.value.trim();
-      }
-    });
-    
-    await engine.updateContext(newContext);
-  }
-
   function showScenarioSelector() {
     // Reset to initial state
     currentScenario = null;
     messageList.clear();
-    updateContextFields(null);
+    updateContextFields();
     
     // Reset scenario selector header
     scenarioSelectorHeader.querySelector('.scenario-selector-title').textContent = 'Select Scenario';

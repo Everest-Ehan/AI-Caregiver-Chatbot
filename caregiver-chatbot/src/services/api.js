@@ -129,7 +129,7 @@ class ApiService {
       if (response.session_id) {
         this.sessionId = response.session_id;
       }
-
+      console.log("response", response)
       return response;
     } catch (error) {
       console.error('Failed to send message:', error);

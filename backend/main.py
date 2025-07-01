@@ -40,6 +40,7 @@ def health_check():
 
 @app.get("/scenarios")
 def get_scenarios():
+    print("getting scenarios")
     return [
         {"id": "general_chat", "name": "General Chat", "description": "Test generic conversation", "context_fields": []},
         {
@@ -71,6 +72,12 @@ def get_scenarios():
             "name": "Phone Number Not Found",
             "description": "Caregiver used unregistered phone number",
             "context_fields": ["client_name", "caregiver_name", "new_phone_number", "old_phone_number", "phone_owner"]
+        },
+        {
+            "id": "duplicate_call",
+            "name": "Duplicate Call",
+            "description": "Caregiver accidentally clocked in or out more than once; no call needed, call will be rejected.",
+            "context_fields": []
         }
     ]
 
@@ -102,6 +109,14 @@ def chat(request: ChatRequest):
     if not session:
         return {"message": "Invalid session", "is_complete": True}
 
+    # Update scenario_id if provided in the request
+    if request.scenario_id:
+        session["scenario_id"] = request.scenario_id
+
+    # Merge all incoming context fields into session context (no filtering)
+    if request.context_data:
+        session["context_data"].update(request.context_data)
+
     # Add user message as LangChain HumanMessage
     human_message = HumanMessage(content=request.message)
     session["messages"].append(human_message)
@@ -126,15 +141,22 @@ def chat(request: ChatRequest):
     else:
         bot_response = "I didn't get that."
 
+    # Extract and update context_data from the result
+    context_data = result.get("context_data", {})
+    if context_data:
+        session["context_data"].update(context_data)
+
     # Append bot response to history
     ai_message = AIMessage(content=bot_response)
     session["messages"].append(ai_message)
 
+    # Always return the full context_data
     return {
         "message": bot_response,
         "session_id": request.session_id,
         "is_complete": False,
         "extracted_data": None,
+        "context_data": session["context_data"],  # Return the updated context_data
     }
 
 @app.post("/update-context")

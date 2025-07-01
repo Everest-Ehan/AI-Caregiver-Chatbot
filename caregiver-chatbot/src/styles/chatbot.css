@@ -355,7 +355,7 @@
 }
 
 .scenario-card:hover::before {
-  transform: scaleX(1);
+  transform: scaleX(0.96);
 }
 
 .scenario-card.active {
@@ -365,7 +365,7 @@
 }
 
 .scenario-card.active::before {
-  transform: scaleX(1);
+  transform: scaleX(0.96);
 }
 
 .scenario-card-content h4 {

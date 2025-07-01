@@ -104,7 +104,12 @@ def route_scenario(state: ChatState) -> str:
     else:
         return "general_chat"
 
+def start_node(state: ChatState):
+    # Dummy entry node that immediately routes to the correct scenario
+    return state
+
 builder = StateGraph(ChatState)
+builder.add_node("start", start_node)
 builder.add_node("no_schedule", no_schedule_node)
 builder.add_node("out_of_window", out_of_window_node)
 builder.add_node("gps_out_of_range", gps_out_of_range_node)
@@ -113,9 +118,9 @@ builder.add_node("phone_not_found", phone_not_found_node)
 builder.add_node("duplicate_call", duplicate_call_node)
 builder.add_node("general_chat", general_chat_node)
 
-builder.set_entry_point("general_chat")
+builder.set_entry_point("start")
 builder.add_conditional_edges(
-    "general_chat", route_scenario,
+    "start", route_scenario,
     {
         "no_schedule": "no_schedule",
         "out_of_window": "out_of_window",

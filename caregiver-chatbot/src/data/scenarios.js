@@ -404,6 +404,27 @@ export const scenarios = {
         nextStep: null
       }
     ]
+  },
+
+  duplicate_call: {
+    id: 'duplicate_call',
+    name: 'Duplicate Call',
+    description: 'Caregiver accidentally clocked in or out more than once; no call needed, call will be rejected.',
+    contextFields: {},
+    steps: [
+      {
+        id: 'greeting',
+        agent: 'Hello, this is Rosella from Independence Care. How are you doing today? I have noticed that you have made a duplicate clock-in/out call. No call is needed for duplicate clock-in/out. The call will be rejected.',
+        expectedResponses: ['acknowledgment'],
+        nextStep: 'goodbye'
+      },
+      {
+        id: 'goodbye',
+        agent: 'Thank you, have a good day!',
+        expectedResponses: [],
+        nextStep: null
+      }
+    ]
   }
 };
 
