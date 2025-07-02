@@ -1,11 +1,10 @@
 from langchain_openai.chat_models import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
-from .utils_context_extraction import extract_context_field
+import json
 
 def gps_out_of_range_node(state):
     llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
     context = state.get("context_data", {})
-    substep = context.get("substep", "greet")
     messages = state["messages"]
     user_input = None
     for msg in reversed(messages):
@@ -13,70 +12,89 @@ def gps_out_of_range_node(state):
             user_input = msg.content
             break
 
-    # Step 1: Greet and identify GPS issue
-    if substep == "greet":
-        prompt = "Hello, this is Rosella from Independence Care. How are you doing today? I have noticed you have clocked in outside of the client's service area, which is not close to your client's house. Can you please clock in again once you are at your client's house, because we are not able to accept this clock in."
-        context["substep"] = "get_clock_in_location"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
+    context_fields = [
+        "caregiver_name",
+        "client_name",
+        "gps_issue_type",  # 'clock_in' or 'clock_out'
+        "clock_in_location",
+        "clock_out_location",
+        "can_try_again",
+        "unscheduled_visit_attempted",
+        "errand_reason",  # generalized reason for being out of range
+        "client_on_phone",
+        "client_confirmed_reason",
+        "office_state",
+        "substep"
+    ]
+    workflow = [
+        {"substep": "greet", "description": "Greet and explain GPS issue (clock-in or clock-out).", "extract": ["gps_issue_type"]},
+        {"substep": "get_location", "description": "Ask where they clocked in/out.", "extract": ["clock_in_location", "clock_out_location"]},
+        {"substep": "get_reason", "description": "Ask for the reason for being out of range (errand, mistake, etc).", "extract": ["errand_reason"]},
+        {"substep": "try_again", "description": "Ask if they can try again at the correct location.", "extract": ["can_try_again"]},
+        {"substep": "unscheduled_visit", "description": "If can't try again, suggest unscheduled visit option.", "extract": ["unscheduled_visit_attempted"]},
+        {"substep": "client_confirmation", "description": "Ask client to confirm the reason if needed.", "extract": ["client_on_phone", "client_confirmed_reason"]},
+        {"substep": "end", "description": "End the conversation politely, remind about state law.", "extract": []},
+    ]
+    scenario_examples = """
+Example 1 (Clock-in):
+Caregiver: I clocked in from my car.
+Agent: Please clock in again once you are at your client's house, because we are not able to accept this clock in.
 
-    # Step 2: Get clock-in location response
-    if substep == "get_clock_in_location":
-        if not context.get("clock_in_location") and user_input:
-            extracted = extract_context_field(user_input, "clock_in_location", "Extract where the caregiver says they clocked in (client's house, different location, etc.)")
-            if extracted.get("clock_in_location"):
-                context["clock_in_location"] = extracted["clock_in_location"]
-        if not context.get("clock_in_location"):
-            prompt = "Where did you clock in from?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        # Check if they claim it's the client's house
-        if "client" in str(context["clock_in_location"]).lower() or "house" in str(context["clock_in_location"]).lower():
-            prompt = "I am sorry to hear that but it can't be the application's fault because all of our caregivers are using the same application and this does not seem to be the issue with anyone else at the moment, but can you try to clock in again and make sure you are inside your client's house."
-            context["substep"] = "try_again"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        else:
-            # They admit it's not at client's house
-            prompt = "Can you please clock in again once you are at your client's house?"
-            context["substep"] = "try_again"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
+Example 2 (Errand):
+Caregiver: I stopped by to pick up groceries and medicine for the client before coming in.
+Agent: Can your client confirm that you picked up these items for them before your shift?
+Caregiver: Yes, you can ask them.
+Agent: (calls client to confirm)
 
-    # Step 3: Try again response
-    if substep == "try_again":
-        if not context.get("can_try_again") and user_input:
-            extracted = extract_context_field(user_input, "can_try_again", "Return yes if they can try again, no if they cannot")
-            if extracted.get("can_try_again"):
-                context["can_try_again"] = extracted["can_try_again"]
-        if not context.get("can_try_again"):
-            prompt = "Can you try clocking in again from your client's house?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        if str(context["can_try_again"]).lower() in ["no", "can't", "won't"]:
-            prompt = "Oh! Okay there should be an option in your app called 'unscheduled visits' try doing it from there and see if it lets you!"
-            context["substep"] = "unscheduled_visit"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        else:
-            prompt = "Thank you, please feel free to reach us if you come across any problems. Remember it is our state law that a Home Care agency cannot bill for visits that are rendered outside of the client's home."
-            context["substep"] = "end"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 4: Unscheduled visit response
-    if substep == "unscheduled_visit":
-        if not context.get("unscheduled_visit_response") and user_input:
-            extracted = extract_context_field(user_input, "unscheduled_visit_response", "Extract their response about trying unscheduled visit")
-            if extracted.get("unscheduled_visit_response"):
-                context["unscheduled_visit_response"] = extracted["unscheduled_visit_response"]
-        if not context.get("unscheduled_visit_response"):
-            prompt = "Can you try the unscheduled visit option?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        prompt = "Thank you, please feel free to reach us if you come across any problems. Remember it is our state law that a Home Care agency cannot bill for visits that are rendered outside of the client's home."
-        context["substep"] = "end"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 5: End
-    if substep == "end":
-        prompt = "Thank you, have a good day!"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Fallback
-    prompt = "Thank you. All information received."
-    return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context} 
+Example 3 (Clock-out):
+Agent: I have noticed your clock out is outside of the client's service area, and we are not able to accept that. Can you please go back and clock out from your client’s house? Because we can’t complete the visit without your clock out.
+Caregiver: I have already left my client's house, and I am not able to go back!
+Agent: I apologize for the inconvenience this causes but we will not be able to mark your shift as completed without a clock out, so it is really important. Again, I apologize for the inconvenience this is causing.
+"""
+    system_prompt = (
+        f"You are Rosella from Independence Care, a professional caregiver support representative.\n"
+        f"Your main job is to extract and update all relevant context fields for this scenario after each message.\n"
+        f"Extraction rules (ALWAYS follow):\n"
+        f"- After every message, extract and update ALL context fields you can infer from the conversation so far, even if not explicitly stated.\n"
+        f"- Always make sense of the conversation as a whole. If the user says something that logically means a context field should be set (e.g., if the client responds directly, set 'client_on_phone': true), update the extracted JSON accordingly.\n"
+        f"- If a field is already present and valid, do not ask for it again.\n"
+        f"- Only ask for missing or unclear information.\n"
+        f"- If the caregiver was out of range for a valid reason (errand, etc.), ask the client to confirm.\n"
+        f"- If the workflow is complete, set 'substep' to 'end'.\n"
+        f"- If you need more information, keep the substep the same and ask for clarification.\n"
+        f"- Never break, always handle the situation gracefully.\n"
+        f"Context fields: {', '.join(context_fields)}\n"
+        f"Current context: {json.dumps(context)}\n"
+        f"Current workflow step: {context.get('substep', 'greet')}\n"
+        f"Workflow steps (in order):\n" + "\n".join([
+            f"- {step['substep']}: {step['description']} (extract: {', '.join(step['extract']) if step['extract'] else 'none'})" for step in workflow
+        ]) + "\n"
+        f"Example:\nCaregiver: I clocked out from the store.\nAgent: What was the reason for clocking out there?\n" \
+        f"After your response, append a delimiter '---EXTRACTED---' and then the extracted data as JSON on a new line. Do not write anything like ``` json ``` or anything like that.\n"
+        f"The extracted JSON should include any relevant fields and MUST include the next substep as 'substep'.\n"
+    )
+    conversation = [SystemMessage(content=system_prompt)]
+    if user_input:
+        conversation.append(HumanMessage(content=user_input))
+    else:
+        conversation.append(HumanMessage(content=""))
+    response = llm.invoke(conversation)
+    content = response.content
+    if '---EXTRACTED---' in content:
+        reply, extracted = content.split('---EXTRACTED---', 1)
+        reply = reply.strip()
+        if not reply.endswith('\n'):
+            reply = reply + '\n'
+        extracted = extracted.strip()
+        try:
+            extracted_json = json.loads(extracted)
+        except Exception:
+            extracted_json = {}
+    else:
+        reply = content.strip()
+        extracted_json = {}
+    if isinstance(extracted_json, dict):
+        context.update({k: v for k, v in extracted_json.items() if v is not None})
+    if extracted_json.get("substep"):
+        context["substep"] = extracted_json["substep"]
+    return {"messages": messages + [SystemMessage(content=reply)], "context_data": context}

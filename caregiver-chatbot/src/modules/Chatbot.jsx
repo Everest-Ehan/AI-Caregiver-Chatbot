@@ -14,6 +14,7 @@ export default function Chatbot() {
   const [showQuickResponses, setShowQuickResponses] = useState(false);
   const [contextFields, setContextFields] = useState([]);
   const [isScenarioSelectorExpanded, setIsScenarioSelectorExpanded] = useState(true);
+  const [messageInputValue, setMessageInputValue] = useState("");
   const messageInputRef = useRef(null);
 
   // Load scenarios on mount
@@ -55,38 +56,56 @@ export default function Chatbot() {
   // Handle sending a message
   const handleSend = async (msg) => {
     setMessages(prev => [...prev, { sender: 'user', text: msg, timestamp: new Date().toISOString() }]);
+    setMessageInputValue(""); // Clear input after sending
     const response = await engine.processUserInput(msg);
     setMessages(prev => [...prev, { sender: 'agent', text: response.message, timestamp: new Date().toISOString() }]);
   };
 
   // Handle quick response selection
   const handleQuickResponse = (response) => {
-    handleSend(response);
+    setMessageInputValue(prev => {
+      const sep = prev && !prev.endsWith(' ') ? ' ' : '';
+      return prev + sep + response;
+    });
+    if (messageInputRef.current && typeof messageInputRef.current.focus === 'function') {
+      messageInputRef.current.focus();
+    }
   };
 
   // Build a master list of all possible context fields from all scenarios
   useEffect(() => {
-    let allFields = {};
-    allScenarios.forEach(scenario => {
-      const fields = scenario.context_fields || scenario.contextFields;
-      if (fields) {
-        if (Array.isArray(fields)) {
-          fields.forEach(field => {
-            allFields[field] = {
-              label: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
-              placeholder: `Enter ${field.replace(/_/g, ' ').toLowerCase()}`,
-              required: false
-            };
-          });
-        } else {
-          Object.entries(fields).forEach(([key, config]) => {
-            allFields[key] = config;
-          });
-        }
+    if (currentScenario && typeof currentScenario === 'object') {
+      // If currentScenario is an object from backend, use its context_fields
+      const fields = currentScenario.context_fields || [];
+      let allFields = {};
+      fields.forEach(field => {
+        allFields[field] = {
+          label: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+          placeholder: `Enter ${field.replace(/_/g, ' ').toLowerCase()}`,
+          required: false
+        };
+      });
+      setContextFields(allFields);
+    } else if (typeof currentScenario === 'string') {
+      // If currentScenario is just an id, find the scenario object
+      const scenarioObj = allScenarios.find(s => s.id === currentScenario);
+      if (scenarioObj && scenarioObj.context_fields) {
+        let allFields = {};
+        scenarioObj.context_fields.forEach(field => {
+          allFields[field] = {
+            label: field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            placeholder: `Enter ${field.replace(/_/g, ' ').toLowerCase()}`,
+            required: false
+          };
+        });
+        setContextFields(allFields);
+      } else {
+        setContextFields({});
       }
-    });
-    setContextFields(allFields);
-  }, [allScenarios]);
+    } else {
+      setContextFields({});
+    }
+  }, [currentScenario, allScenarios]);
 
   // Handle context field change
   const handleContextChange = (key, value) => {
@@ -114,7 +133,12 @@ export default function Chatbot() {
             <div className="chatbot-subtitle">Professional Assistance</div>
           </div>
           <MessageList messages={messages} />
-          <MessageInput onSend={handleSend} onFocus={messageInputRef} />
+          <MessageInput 
+            onSend={handleSend} 
+            onFocus={messageInputRef} 
+            value={messageInputValue}
+            onChange={e => setMessageInputValue(e.target.value)}
+          />
         </div>
         {/* Right Panel - Context */}
         <div className="chatbot-right-panel">
@@ -142,4 +166,4 @@ export default function Chatbot() {
       </div>
     </div>
   );
-} 
+}
