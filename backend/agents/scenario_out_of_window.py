@@ -1,11 +1,10 @@
 from langchain_openai.chat_models import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
-from .utils_context_extraction import extract_context_field
+import json
 
 def out_of_window_node(state):
     llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
     context = state.get("context_data", {})
-    substep = context.get("substep", "greet")
     messages = state["messages"]
     user_input = None
     for msg in reversed(messages):
@@ -13,109 +12,79 @@ def out_of_window_node(state):
             user_input = msg.content
             break
 
-    # Step 1: Greet and confirm reason for lateness
-    if substep == "greet":
-        prompt = "Hello, this is Rosella from Independence Care. How are you doing today? I have noticed that you clocked in late for your shift today, I just wanted to confirm what was the reason for that?"
-        context["substep"] = "get_late_reason"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
+    # Define context fields for this scenario
+    context_fields = [
+        "client_name",
+        "caregiver_name",
+        "scheduled_start_time",
+        "actual_start_time",
+        "late_reason",
+        "client_on_phone",
+        "client_name_confirmed",
+        "client_confirmed_time",
+        "can_makeup_hours",
+        "makeup_time",
+        "makeup_later",
+        "substep"
+    ]
+    workflow = [
+        {"substep": "greet", "description": "Greet and explain late clock-in detected.", "extract": []},
+        {"substep": "get_late_reason", "description": "Ask for the reason for being late.", "extract": ["late_reason"]},
+        {"substep": "get_actual_arrival_time", "description": "Ask for the actual arrival time.", "extract": ["actual_start_time"]},
+        {"substep": "get_client_on_phone", "description": "Ask to bring the client to the phone.", "extract": ["client_on_phone"]},
+        {"substep": "confirm_with_client", "description": "Ask the client to confirm the caregiver's arrival time and name.", "extract": ["client_name_confirmed", "client_confirmed_time"]},
+        {"substep": "offer_makeup_hours", "description": "Offer to make up missed hours if late.", "extract": ["can_makeup_hours", "makeup_time", "makeup_later"]},
+        {"substep": "end", "description": "End the conversation politely.", "extract": []}
+    ]
+    workflow_str = "Workflow steps (in order):\n" + "\n".join([
+        f"- {step['substep']}: {step['description']} (extract: {', '.join(step['extract']) if step['extract'] else 'none'})" for step in workflow
+    ])
 
-    # Step 2: Get reason for being late
-    if substep == "get_late_reason":
-        if not context.get("late_reason") and user_input:
-            extracted = extract_context_field(user_input, "late_reason", "Extract the reason for being late (forgot to clock in, woke up late, doctor appointment, client asked to come late, etc.)")
-            if extracted.get("late_reason"):
-                context["late_reason"] = extracted["late_reason"]
-        if not context.get("late_reason"):
-            prompt = "Can you tell me what was the reason for being late today?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        # Check if it's "forgot to clock in" scenario
-        if "forgot" in str(context["late_reason"]).lower() or "didn't clock" in str(context["late_reason"]).lower():
-            prompt = "Oh! I totally understand, can you tell me what time you actually arrived today?"
-            context["substep"] = "get_actual_arrival_time"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        else:
-            # Other reasons (woke up late, appointment, etc.)
-            prompt = "Okay, can you tell me what time you actually arrived today?"
-            context["substep"] = "get_actual_arrival_time"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
+    system_prompt = (
+        f"You are Rosella from Independence Care, a professional caregiver support representative.\n"
+        f"Your main job is to extract and update all relevant context fields for this scenario after each message.\n"
+        f"Extraction rules (ALWAYS follow):\n"
+        f"- After every message, extract and update ALL context fields you can infer from the conversation so far, even if not explicitly stated.\n"
+        f"- You must always make sense of the conversation as a whole. If the user says something that logically means a context field should be set (e.g., if the client responds directly, set 'client_on_phone': true), update the extracted JSON accordingly, even if the user does not state it in the exact words.\n"
+        f"- If a field is already present and valid, do not ask for it again.\n"
+        f"- If a step logically requires a field to be true (e.g., if you are speaking to the client, set 'client_on_phone': true), set it in the extracted JSON.\n"
+        f"- Only ask for missing or unclear information.\n"
+        f"- If the caregiver cannot make up hours now but can later, set 'makeup_later' to true and end politely.\n"
+        f"- If the workflow is complete, set 'substep' to 'end'.\n"
+        f"- If you need more information, keep the substep the same and ask for clarification.\n"
+        f"- Never break, always handle the situation gracefully.\n"
+        f"Context fields: {', '.join(context_fields)}\n"
+        f"Current context: {json.dumps(context)}\n"
+        f"Current workflow step: {context.get('substep', 'greet')}\n"
+        f"{workflow_str}\n"
+        f"Example:\nCaregiver: No, I can’t right now but I can anytime later this week, I will call and let you guys know.\nAgent: Totally understand! If you decide you make up your hours, please feel free to let us know.\n(Extracted: 'makeup_later': true)\n"
+        f"After your response, append a delimiter '---EXTRACTED---' and then the extracted data as JSON on a new line. Do not write anything like ``` json ``` or anything like that.\n"
+        f"The extracted JSON should include any relevant fields and MUST include the next substep as 'substep'.\n"
+    )
 
-    # Step 3: Get actual arrival time
-    if substep == "get_actual_arrival_time":
-        if not context.get("actual_arrival_time") and user_input:
-            extracted = extract_context_field(user_input, "actual_arrival_time", "Extract the actual arrival time (e.g., 9am, 9:05, etc.)")
-            if extracted.get("actual_arrival_time"):
-                context["actual_arrival_time"] = extracted["actual_arrival_time"]
-        if not context.get("actual_arrival_time"):
-            prompt = "What time did you actually arrive today?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        prompt = "That's great, can you also put the client on the phone so we can confirm with them?"
-        context["substep"] = "get_client_on_phone"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
+    conversation = [SystemMessage(content=system_prompt)]
+    if user_input:
+        conversation.append(HumanMessage(content=user_input))
+    else:
+        conversation.append(HumanMessage(content=""))
 
-    # Step 4: Get client on phone
-    if substep == "get_client_on_phone":
-        if not context.get("client_on_phone") and user_input:
-            extracted = extract_context_field(user_input, "client_on_phone", "Return yes if the client is on the phone or available")
-            if extracted.get("client_on_phone"):
-                context["client_on_phone"] = extracted["client_on_phone"]
-        if not context.get("client_on_phone"):
-            prompt = "Can you put the client on the phone so I can confirm the arrival time?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        prompt = "Hi, can you state your name?"
-        context["substep"] = "get_client_name"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 5: Get client name
-    if substep == "get_client_name":
-        if not context.get("client_name") and user_input:
-            extracted = extract_context_field(user_input, "client_name", "Extract the client's name")
-            if extracted.get("client_name"):
-                context["client_name"] = extracted["client_name"]
-        if not context.get("client_name"):
-            prompt = "Can you please state your name?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        prompt = f"Great, can you confirm what time your aide showed up today?"
-        context["substep"] = "confirm_arrival_time"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 6: Confirm arrival time with client
-    if substep == "confirm_arrival_time":
-        if not context.get("client_confirmed_time") and user_input:
-            extracted = extract_context_field(user_input, "client_confirmed_time", "Extract the time the client confirms the aide arrived")
-            if extracted.get("client_confirmed_time"):
-                context["client_confirmed_time"] = extracted["client_confirmed_time"]
-        if not context.get("client_confirmed_time"):
-            prompt = "What time did your aide arrive today?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        # Calculate adjusted end time (add the difference to end time)
-        arrival_time = context.get("client_confirmed_time", "9:05")
-        prompt = f"Great, thank you. We will adjust the schedule for a start time of {arrival_time}. We will adjust the scheduled clock out time accordingly, so you do not lose any hours today. Can you put your aide back on the phone please?"
-        context["substep"] = "back_to_caregiver"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 7: Back to caregiver
-    if substep == "back_to_caregiver":
-        if not context.get("caregiver_back") and user_input:
-            extracted = extract_context_field(user_input, "caregiver_back", "Return yes if the caregiver is back on the phone")
-            if extracted.get("caregiver_back"):
-                context["caregiver_back"] = extracted["caregiver_back"]
-        if not context.get("caregiver_back"):
-            prompt = "Can you put your aide back on the phone?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        arrival_time = context.get("client_confirmed_time", "9:05")
-        office_location = context.get("office_location", "our office")
-        prompt = f"Hi, so the client confirmed you showed up at {arrival_time} so your schedule has been adjusted to reflect that arrival time. Moving forward, I want to let you know that we are not allowed to make any changes to any clock in or clock out time. So, going forward please make sure you are very careful with your clock in and clock out because we will not be able to adjust them due to {office_location} state law. Thank you, have a good day!"
-        context["substep"] = "end"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 8: End
-    if substep == "end":
-        prompt = "Thank you, you too."
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Fallback
-    prompt = "Thank you. All information received."
-    return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context} 
+    response = llm.invoke(conversation)
+    content = response.content
+    if '---EXTRACTED---' in content:
+        reply, extracted = content.split('---EXTRACTED---', 1)
+        reply = reply.strip()
+        if not reply.endswith('\n'):
+            reply = reply + '\n'
+        extracted = extracted.strip()
+        try:
+            extracted_json = json.loads(extracted)
+        except Exception:
+            extracted_json = {}
+    else:
+        reply = content.strip()
+        extracted_json = {}
+    if isinstance(extracted_json, dict):
+        context.update({k: v for k, v in extracted_json.items() if v is not None})
+    if extracted_json.get("substep"):
+        context["substep"] = extracted_json["substep"]
+    return {"messages": messages + [SystemMessage(content=reply)], "context_data": context}

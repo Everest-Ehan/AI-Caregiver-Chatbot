@@ -1,11 +1,10 @@
 from langchain_openai.chat_models import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
-from .utils_context_extraction import extract_context_field
+import json
 
 def phone_not_found_node(state):
     llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
     context = state.get("context_data", {})
-    substep = context.get("substep", "greet")
     messages = state["messages"]
     user_input = None
     for msg in reversed(messages):
@@ -13,137 +12,77 @@ def phone_not_found_node(state):
             user_input = msg.content
             break
 
-
-    # Step 1: Greet and identify unregistered phone
-    if substep == "greet":
-        phone_number = context.get("unregistered_phone", "this number")
-        prompt = f"Hello, this is Rosella from Independence Care. How are you doing today? I have noticed that you have clocked in using a phone number that is not registered with us. Can you confirm whose number this is? ({phone_number})"
-        context["substep"] = "confirm_phone_owner"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 2: Confirm phone owner
-    if substep == "confirm_phone_owner":
-        if not context.get("phone_owner") and user_input:
-            extracted = extract_context_field(user_input, "phone_owner", "Extract who owns the phone (client, caregiver, etc.)")
-            if extracted.get("phone_owner"):
-                context["phone_owner"] = extracted["phone_owner"]
-        if not context.get("phone_owner"):
-            prompt = "Can you confirm whose phone number this is?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        # Check if it's client's new phone
-        if "client" in str(context["phone_owner"]).lower():
-            prompt = "Okay, can your client confirm that?"
-            context["substep"] = "client_confirmation"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        else:
-            prompt = "Can you please use a registered phone number for clocking in?"
-            context["substep"] = "end"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 3: Get client confirmation
-    if substep == "client_confirmation":
-        if not context.get("client_can_confirm") and user_input:
-            extracted = extract_context_field(user_input, "client_can_confirm", "Return yes if client can confirm, no if they cannot")
-            if extracted.get("client_can_confirm"):
-                context["client_can_confirm"] = extracted["client_can_confirm"]
-        if not context.get("client_can_confirm"):
-            prompt = "Can your client confirm this is their new phone number?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        if str(context["client_can_confirm"]).lower() in ["yes", "they can", "sure"]:
-            prompt = "Perfect! Can you get your client on the phone?"
-            context["substep"] = "get_client_on_phone"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        else:
-            prompt = "I understand. Please use a registered phone number for future clock-ins."
-            context["substep"] = "end"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 4: Get client on phone
-    if substep == "get_client_on_phone":
-        if not context.get("client_on_phone") and user_input:
-            extracted = extract_context_field(user_input, "client_on_phone", "Return yes if client is on the phone")
-            if extracted.get("client_on_phone"):
-                context["client_on_phone"] = extracted["client_on_phone"]
-        if not context.get("client_on_phone"):
-            prompt = "Can you put your client on the phone?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        prompt = "Hello, this is Rosella from Independence Care, how are you doing today?"
-        context["substep"] = "client_greeting"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 5: Client greeting response
-    if substep == "client_greeting":
-        if not context.get("client_doing") and user_input:
-            extracted = extract_context_field(user_input, "client_doing", "Extract how client says they are doing")
-            if extracted.get("client_doing"):
-                context["client_doing"] = extracted["client_doing"]
-        if not context.get("client_doing"):
-            prompt = "How are you doing today?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        prompt = "That's great to hear. Can you please confirm who I am talking to?"
-        context["substep"] = "get_client_name"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 6: Get client name
-    if substep == "get_client_name":
-        if not context.get("client_name") and user_input:
-            extracted = extract_context_field(user_input, "client_name", "Extract the client's name")
-            if extracted.get("client_name"):
-                context["client_name"] = extracted["client_name"]
-        if not context.get("client_name"):
-            prompt = "Can you please state your name?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        phone_number = context.get("unregistered_phone", "this number")
-        prompt = f"Perfect! I just wanted to confirm if this is your new phone ({phone_number})"
-        context["substep"] = "confirm_new_phone"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 7: Confirm new phone
-    if substep == "confirm_new_phone":
-        if not context.get("new_phone_confirmed") and user_input:
-            extracted = extract_context_field(user_input, "new_phone_confirmed", "Return yes if client confirms it's their new phone")
-            if extracted.get("new_phone_confirmed"):
-                context["new_phone_confirmed"] = extracted["new_phone_confirmed"]
-        if not context.get("new_phone_confirmed"):
-            prompt = "Is this your new phone number?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        if str(context["new_phone_confirmed"]).lower() in ["yes", "it is", "correct"]:
-            prompt = "Great and will this be the number your caregiver will be using to clock in going forward?"
-            context["substep"] = "future_use"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        else:
-            prompt = "I understand. Please use a registered phone number for clocking in."
-            context["substep"] = "end"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 8: Confirm future use
-    if substep == "future_use":
-        if not context.get("future_use_confirmed") and user_input:
-            extracted = extract_context_field(user_input, "future_use_confirmed", "Return yes if client confirms this will be used for future clock-ins")
-            if extracted.get("future_use_confirmed"):
-                context["future_use_confirmed"] = extracted["future_use_confirmed"]
-        if not context.get("future_use_confirmed"):
-            prompt = "Will this be the number used for future clock-ins?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        if str(context["future_use_confirmed"]).lower() in ["yes", "think so", "probably"]:
-            prompt = "Sounds great! Then I will make sure this gets updated in your profile. Thank you for your time. You guys have a good day."
-            context["substep"] = "end"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        else:
-            prompt = "I understand. Please use a registered phone number for clocking in."
-            context["substep"] = "end"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 9: End
-    if substep == "end":
-        prompt = "Thank you, have a good day!"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Fallback
-    prompt = "Thank you. All information received."
-    return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context} 
+    context_fields = [
+        "caregiver_name",
+        "client_name",
+        "unregistered_phone",
+        "phone_owner",
+        "client_can_confirm",
+        "client_on_phone",
+        "client_name_confirmed",
+        "new_phone_confirmed",
+        "substep"
+    ]
+    workflow = [
+        {"substep": "greet", "description": "Greet and explain unregistered phone issue.", "extract": []},
+        {"substep": "confirm_phone_owner", "description": "Ask whose phone it is.", "extract": ["phone_owner"]},
+        {"substep": "client_confirmation", "description": "If client claims ownership, ask if client can confirm.", "extract": ["client_can_confirm"]},
+        {"substep": "get_client_on_phone", "description": "If client can confirm, ask to get client on phone.", "extract": ["client_on_phone"]},
+        {"substep": "confirm_new_phone", "description": "Ask client to confirm new phone number and if it will be used going forward.", "extract": ["client_name_confirmed", "new_phone_confirmed"]},
+        {"substep": "end", "description": "End the conversation politely.", "extract": []},
+    ]
+    scenario_examples = """
+Example 1:
+Caregiver: Yes, this is my client's new phone number.
+Agent: Okay, can your client confirm that? Can you get your client on the phone?
+Caregiver: Yes, here they are!
+Agent: Hello, can you confirm who I am talking to and if this is your new phone number?
+Client: Yes, this is my number and I will use it going forward.
+Agent: Great, I will make sure this gets updated in your profile. Thank you for your time.
+"""
+    system_prompt = (
+        f"You are Rosella from Independence Care, a professional caregiver support representative.\n"
+        f"Your main job is to extract and update all relevant context fields for this scenario after each message.\n"
+        f"Extraction rules (ALWAYS follow):\n"
+        f"- After every message, extract and update ALL context fields you can infer from the conversation so far, even if not explicitly stated.\n"
+        f"- Always make sense of the conversation as a whole.\n"
+        f"- If a field is already present and valid, do not ask for it again.\n"
+        f"- Only ask for missing or unclear information.\n"
+        f"- If the workflow is complete, set 'substep' to 'end'.\n"
+        f"- If you need more information, keep the substep the same and ask for clarification.\n"
+        f"- Never break, always handle the situation gracefully.\n"
+        f"Context fields: {', '.join(context_fields)}\n"
+        f"Current context: {json.dumps(context)}\n"
+        f"Current workflow step: {context.get('substep', 'greet')}\n"
+        f"Workflow steps (in order):\n" + "\n".join([
+            f"- {step['substep']}: {step['description']} (extract: {', '.join(step['extract']) if step['extract'] else 'none'})" for step in workflow
+        ]) + "\n"
+        f"Example:\nCaregiver: Yes, this is my client's new phone number.\nAgent: Okay, can your client confirm that? Can you get your client on the phone?\n" \
+        f"After your response, append a delimiter '---EXTRACTED---' and then the extracted data as JSON on a new line. Do not write anything like ``` json ``` or anything like that.\n"
+        f"The extracted JSON should include any relevant fields and MUST include the next substep as 'substep'.\n"
+    )
+    conversation = [SystemMessage(content=system_prompt)]
+    if user_input:
+        conversation.append(HumanMessage(content=user_input))
+    else:
+        conversation.append(HumanMessage(content=""))
+    response = llm.invoke(conversation)
+    content = response.content
+    if '---EXTRACTED---' in content:
+        reply, extracted = content.split('---EXTRACTED---', 1)
+        reply = reply.strip()
+        if not reply.endswith('\n'):
+            reply = reply + '\n'
+        extracted = extracted.strip()
+        try:
+            extracted_json = json.loads(extracted)
+        except Exception:
+            extracted_json = {}
+    else:
+        reply = content.strip()
+        extracted_json = {}
+    if isinstance(extracted_json, dict):
+        context.update({k: v for k, v in extracted_json.items() if v is not None})
+    if extracted_json.get("substep"):
+        context["substep"] = extracted_json["substep"]
+    return {"messages": messages + [SystemMessage(content=reply)], "context_data": context}

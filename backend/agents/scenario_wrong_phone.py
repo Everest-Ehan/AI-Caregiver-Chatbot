@@ -1,108 +1,87 @@
 from langchain_openai.chat_models import ChatOpenAI
 from langchain_core.messages import SystemMessage, HumanMessage
-from .utils_context_extraction import extract_context_field
+import json
 
 def wrong_phone_node(state):
     llm = ChatOpenAI(model="gpt-4o", temperature=0.5)
     context = state.get("context_data", {})
-    substep = context.get("substep", "greet")
     messages = state["messages"]
     user_input = None
     for msg in reversed(messages):
         if isinstance(msg, HumanMessage):
             user_input = msg.content
             break
-        
-    # Step 1: Greet and identify wrong phone usage
-    if substep == "greet":
-        prompt = "Hello, this is Rosella from Independence Care. How are you doing today? I have noticed that you used the IVR number to clock in today, but you used your phone to call that number instead of the client's house phone. Can you please clock in again using the client's house phone?"
-        context["substep"] = "get_phone_response"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
 
-    # Step 2: Get response about using client's phone
-    if substep == "get_phone_response":
-        if not context.get("phone_response") and user_input:
-            extracted = extract_context_field(user_input, "phone_response", "Extract their response about using client's phone (will do it, client won't allow, etc.)")
-            if extracted.get("phone_response"):
-                context["phone_response"] = extracted["phone_response"]
-        if not context.get("phone_response"):
-            prompt = "Can you please use the client's house phone to clock in?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        # Check if they can use client's phone
-        if "sorry" in str(context["phone_response"]).lower() or "will do" in str(context["phone_response"]).lower():
-            prompt = "No problem! Please feel free to call us if you have any other issues."
-            context["substep"] = "end"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        elif "won't allow" in str(context["phone_response"]).lower() or "client won't" in str(context["phone_response"]).lower():
-            prompt = "That's unfortunate, in this situation I would recommend you use the HHA app to clock in."
-            context["substep"] = "app_option"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        else:
-            prompt = "Can you please use the client's house phone to clock in?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
+    context_fields = [
+        "caregiver_name",
+        "client_name",
+        "phone_response",
+        "app_works",
+        "coordinator_ok",
+        "substep"
+    ]
+    workflow = [
+        {"substep": "greet", "description": "Greet and explain wrong phone usage.", "extract": []},
+        {"substep": "get_phone_response", "description": "Ask if they can use the client's house phone.", "extract": ["phone_response"]},
+        {"substep": "app_option", "description": "If client won't allow, ask if HHA app works.", "extract": ["app_works"]},
+        {"substep": "coordinator_setup", "description": "If app doesn't work, offer coordinator call.", "extract": ["coordinator_ok"]},
+        {"substep": "end", "description": "End the conversation politely.", "extract": []},
+    ]
+    scenario_examples = """
+Example 1:
+Caregiver: Sorry, I'll use the client's phone next time.
+Agent: No problem! Please feel free to call us if you have any other issues.
 
-    # Step 3: App option response
-    if substep == "app_option":
-        if not context.get("app_works") and user_input:
-            extracted = extract_context_field(user_input, "app_works", "Return yes if app works, no if it doesn't work")
-            if extracted.get("app_works"):
-                context["app_works"] = extracted["app_works"]
-        if not context.get("app_works"):
-            prompt = "Does your HHA app work for clocking in?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        if str(context["app_works"]).lower() in ["no", "doesn't work", "not working"]:
-            prompt = "Okay, for that I can have one of our care coordinators give you a call and get your HHA app set up. Does that sound good to you?"
-            context["substep"] = "coordinator_setup"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        else:
-            prompt = "Great! Please use the HHA app to clock in from now on."
-            context["substep"] = "end"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 4: Coordinator setup response
-    if substep == "coordinator_setup":
-        if not context.get("coordinator_ok") and user_input:
-            extracted = extract_context_field(user_input, "coordinator_ok", "Return yes if they want coordinator help, no if they don't")
-            if extracted.get("coordinator_ok"):
-                context["coordinator_ok"] = extracted["coordinator_ok"]
-        if not context.get("coordinator_ok"):
-            prompt = "Would you like a care coordinator to help set up your HHA app?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        if str(context["coordinator_ok"]).lower() in ["yes", "sounds good", "helpful"]:
-            prompt = "Great! I will relay this message to them, and someone will contact you shortly, is there anything else I can assist you with today?"
-            context["substep"] = "anything_else"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        else:
-            prompt = "I understand. Please try to use the client's house phone for future clock-ins."
-            context["substep"] = "end"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 5: Anything else
-    if substep == "anything_else":
-        if not context.get("anything_else") and user_input:
-            extracted = extract_context_field(user_input, "anything_else", "Return yes if they need more help, no if they don't")
-            if extracted.get("anything_else"):
-                context["anything_else"] = extracted["anything_else"]
-        if not context.get("anything_else"):
-            prompt = "Is there anything else I can help you with?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        
-        if str(context["anything_else"]).lower() in ["no", "that's all", "nothing else"]:
-            prompt = "Okay, then you have a good day ahead. Take care, bye!"
-            context["substep"] = "end"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-        else:
-            prompt = "What else can I help you with?"
-            return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Step 6: End
-    if substep == "end":
-        prompt = "Thank you, have a good day!"
-        return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context}
-
-    # Fallback
-    prompt = "Thank you. All information received."
-    return {"messages": messages + [SystemMessage(content=prompt)], "context_data": context} 
+Example 2:
+Caregiver: Client won't allow me to use their phone.
+Agent: In this situation I would recommend you use the HHA app to clock in. Does your app work?
+Caregiver: My app doesn't work.
+Agent: I can have one of our care coordinators give you a call and get your HHA app set up. Does that sound good to you?
+Caregiver: Yes, that would be helpful!
+"""
+    system_prompt = (
+        f"You are Rosella from Independence Care, a professional caregiver support representative.\n"
+        f"Your main job is to extract and update all relevant context fields for this scenario after each message.\n"
+        f"Extraction rules (ALWAYS follow):\n"
+        f"- After every message, extract and update ALL context fields you can infer from the conversation so far, even if not explicitly stated.\n"
+        f"- Always make sense of the conversation as a whole.\n"
+        f"- If a field is already present and valid, do not ask for it again.\n"
+        f"- Only ask for missing or unclear information.\n"
+        f"- If the workflow is complete, set 'substep' to 'end'.\n"
+        f"- If you need more information, keep the substep the same and ask for clarification.\n"
+        f"- Never break, always handle the situation gracefully.\n"
+        f"Context fields: {', '.join(context_fields)}\n"
+        f"Current context: {json.dumps(context)}\n"
+        f"Current workflow step: {context.get('substep', 'greet')}\n"
+        f"Workflow steps (in order):\n" + "\n".join([
+            f"- {step['substep']}: {step['description']} (extract: {', '.join(step['extract']) if step['extract'] else 'none'})" for step in workflow
+        ]) + "\n"
+        f"Example:\nCaregiver: Client won't allow me to use their phone.\nAgent: In this situation I would recommend you use the HHA app to clock in. Does your app work?\n" \
+        f"After your response, append a delimiter '---EXTRACTED---' and then the extracted data as JSON on a new line. Do not write anything like ``` json ``` or anything like that.\n"
+        f"The extracted JSON should include any relevant fields and MUST include the next substep as 'substep'.\n"
+    )
+    conversation = [SystemMessage(content=system_prompt)]
+    if user_input:
+        conversation.append(HumanMessage(content=user_input))
+    else:
+        conversation.append(HumanMessage(content=""))
+    response = llm.invoke(conversation)
+    content = response.content
+    if '---EXTRACTED---' in content:
+        reply, extracted = content.split('---EXTRACTED---', 1)
+        reply = reply.strip()
+        if not reply.endswith('\n'):
+            reply = reply + '\n'
+        extracted = extracted.strip()
+        try:
+            extracted_json = json.loads(extracted)
+        except Exception:
+            extracted_json = {}
+    else:
+        reply = content.strip()
+        extracted_json = {}
+    if isinstance(extracted_json, dict):
+        context.update({k: v for k, v in extracted_json.items() if v is not None})
+    if extracted_json.get("substep"):
+        context["substep"] = extracted_json["substep"]
+    return {"messages": messages + [SystemMessage(content=reply)], "context_data": context}
