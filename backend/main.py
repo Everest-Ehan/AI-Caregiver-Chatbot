@@ -46,31 +46,41 @@ def get_scenarios():
             "id": "no_schedule",
             "name": "No Schedule on Calendar",
             "description": "Caregiver clocked in but no schedule appears on calendar",
-            "context_fields": ["client_name", "caregiver_name", "regular_schedule", "office_location"]
+            "context_fields": [
+                "client_name", "caregiver_name", "system_regular_schedule", "caregiver_regular_schedule", "today_date", "today_shift", "swap_day", "needs_swap", "client_on_phone", "swap_confirmed"
+            ]
         },
         {
             "id": "out_of_window",
             "name": "Out of Window (Late Clock In)",
             "description": "Caregiver clocked in late for their shift",
-            "context_fields": ["client_name", "caregiver_name", "scheduled_start_time", "actual_start_time", "shift_duration", "office_location", "late_reason"]
+            "context_fields": [
+                "client_name", "caregiver_name", "scheduled_start_time", "actual_start_time", "late_reason", "client_on_phone", "client_confirmed_time", "can_makeup_hours", "makeup_time"
+            ]
         },
         {
             "id": "gps_out_of_range",
             "name": "GPS Signal Out of Range",
             "description": "Caregiver clocked in outside client's service area",
-            "context_fields": ["client_name", "caregiver_name", "client_address", "clock_in_location", "office_state", "errand_details"]
+            "context_fields": [
+                "client_name", "caregiver_name", "client_address", "clock_in_location", "errand_details", "client_on_phone", "client_confirmed_errand"
+            ]
         },
         {
             "id": "wrong_phone",
             "name": "Call From Caregiver Number",
             "description": "Caregiver used IVR number from their phone instead of client's house phone",
-            "context_fields": ["client_name", "caregiver_name", "client_phone", "caregiver_phone", "ivr_number"]
+            "context_fields": [
+                "client_name", "caregiver_name", "client_phone", "caregiver_phone", "ivr_number", "client_on_phone", "app_issue"
+            ]
         },
         {
             "id": "phone_not_found",
             "name": "Phone Number Not Found",
             "description": "Caregiver used unregistered phone number",
-            "context_fields": ["client_name", "caregiver_name", "new_phone_number", "old_phone_number", "phone_owner"]
+            "context_fields": [
+                "client_name", "caregiver_name", "new_phone_number", "old_phone_number", "phone_owner", "client_on_phone"
+            ]
         },
         {
             "id": "duplicate_call",
