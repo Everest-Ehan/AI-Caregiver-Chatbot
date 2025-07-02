@@ -16,7 +16,7 @@ export default function Chatbot() {
   const [contextFields, setContextFields] = useState([]);
   const [isScenarioSelectorExpanded, setIsScenarioSelectorExpanded] = useState(true);
   const [messageInputValue, setMessageInputValue] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [chatLoading, setChatLoading] = useState(false);
   const [scenariosLoading, setScenariosLoading] = useState(true);
   const messageInputRef = useRef(null);
 
@@ -38,9 +38,9 @@ export default function Chatbot() {
     };
   }, [engine]);
 
-  // Subscribe to loading state
+  // Subscribe to loading state for chat operations
   useEffect(() => {
-    engine.onLoadingChange = setLoading;
+    engine.onLoadingChange = setChatLoading;
     return () => { engine.onLoadingChange = null; };
   }, [engine]);
 
@@ -149,18 +149,12 @@ export default function Chatbot() {
             <div className="chatbot-title">Caregiver Support Chat</div>
             <div className="chatbot-subtitle">Professional Assistance</div>
           </div>
-          {loading ? (
-            <LoadingScreen />
+          {currentScenario ? (
+            <MessageList messages={messages} showTyping={chatLoading} />
           ) : (
-            <>
-              {currentScenario ? (
-                <MessageList messages={messages} />
-              ) : (
-                <div style={{ padding: '2rem', textAlign: 'center', color: '#888',height: '100%' }}>
-                  Please select a scenario to begin.
-                </div>
-              )}
-            </>
+            <div style={{ padding: '2rem', textAlign: 'center', color: '#888', height: '100%' }}>
+              Please select a scenario to begin.
+            </div>
           )}
           <MessageInput 
             onSend={handleSend} 

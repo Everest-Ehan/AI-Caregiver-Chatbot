@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import TypingIndicator from './TypingIndicator';
 
 function formatTime(iso) {
   const d = new Date(iso);
@@ -9,14 +10,14 @@ function escapeHTML(str) {
   return str.replace(/[&<>'"]/g, tag => ({'&':'&amp;','<':'&lt;','>':'&gt;','\'':'&#39;','"':'&quot;'}[tag]));
 }
 
-export default function MessageList({ messages }) {
+export default function MessageList({ messages, showTyping = false }) {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
     }
-  }, [messages]);
+  }, [messages, showTyping]);
 
   return (
     <div className="chatbot-messages" ref={messagesEndRef}>
@@ -29,6 +30,7 @@ export default function MessageList({ messages }) {
           <div className="chatbot-message-text" dangerouslySetInnerHTML={{ __html: escapeHTML(msg.text) }} />
         </div>
       ))}
+      {showTyping && <TypingIndicator />}
     </div>
   );
 } 
