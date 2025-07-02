@@ -14,6 +14,7 @@ export default function Chatbot() {
   const [showQuickResponses, setShowQuickResponses] = useState(false);
   const [contextFields, setContextFields] = useState([]);
   const [isScenarioSelectorExpanded, setIsScenarioSelectorExpanded] = useState(true);
+  const [messageInputValue, setMessageInputValue] = useState("");
   const messageInputRef = useRef(null);
 
   // Load scenarios on mount
@@ -55,13 +56,20 @@ export default function Chatbot() {
   // Handle sending a message
   const handleSend = async (msg) => {
     setMessages(prev => [...prev, { sender: 'user', text: msg, timestamp: new Date().toISOString() }]);
+    setMessageInputValue(""); // Clear input after sending
     const response = await engine.processUserInput(msg);
     setMessages(prev => [...prev, { sender: 'agent', text: response.message, timestamp: new Date().toISOString() }]);
   };
 
   // Handle quick response selection
   const handleQuickResponse = (response) => {
-    handleSend(response);
+    setMessageInputValue(prev => {
+      const sep = prev && !prev.endsWith(' ') ? ' ' : '';
+      return prev + sep + response;
+    });
+    if (messageInputRef.current && typeof messageInputRef.current.focus === 'function') {
+      messageInputRef.current.focus();
+    }
   };
 
   // Build a master list of all possible context fields from all scenarios
@@ -114,7 +122,12 @@ export default function Chatbot() {
             <div className="chatbot-subtitle">Professional Assistance</div>
           </div>
           <MessageList messages={messages} />
-          <MessageInput onSend={handleSend} onFocus={messageInputRef} />
+          <MessageInput 
+            onSend={handleSend} 
+            onFocus={messageInputRef} 
+            value={messageInputValue}
+            onChange={e => setMessageInputValue(e.target.value)}
+          />
         </div>
         {/* Right Panel - Context */}
         <div className="chatbot-right-panel">
@@ -142,4 +155,4 @@ export default function Chatbot() {
       </div>
     </div>
   );
-} 
+}

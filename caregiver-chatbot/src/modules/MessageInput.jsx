@@ -1,7 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useRef } from 'react';
 
-export default function MessageInput({ onSend, onFocus }) {
-  const [input, setInput] = useState('');
+export default function MessageInput({ onSend, onFocus, value, onChange }) {
   const inputRef = useRef(null);
 
   // Expose focus function to parent component
@@ -11,11 +10,11 @@ export default function MessageInput({ onSend, onFocus }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const value = input.trim();
-    if (value) {
-      onSend(value);
-      setInput('');
-      inputRef.current && inputRef.current.focus();
+    const val = (value !== undefined ? value : inputRef.current.value).trim();
+    if (val) {
+      onSend(val);
+      if (onChange) onChange({ target: { value: '' } }); // Clear controlled input
+      if (inputRef.current) inputRef.current.focus();
     }
   };
 
@@ -27,11 +26,11 @@ export default function MessageInput({ onSend, onFocus }) {
         placeholder="Type your message..."
         aria-label="Type your message"
         required
-        value={input}
-        onChange={e => setInput(e.target.value)}
+        value={value !== undefined ? value : undefined}
+        onChange={onChange ? onChange : e => {}}
         ref={inputRef}
       />
       <button type="submit" className="chatbot-send-btn">Send</button>
     </form>
   );
-} 
+}
