@@ -4,6 +4,7 @@ import ScenarioSelector from './ScenarioSelector.jsx';
 import MessageList from './MessageList.jsx';
 import MessageInput from './MessageInput.jsx';
 import QuickResponses from './QuickResponses.jsx';
+import LoadingScreen from './LoadingScreen';
 
 export default function Chatbot() {
   const [engine] = useState(() => new ChatbotEngine());
@@ -15,13 +16,17 @@ export default function Chatbot() {
   const [contextFields, setContextFields] = useState([]);
   const [isScenarioSelectorExpanded, setIsScenarioSelectorExpanded] = useState(true);
   const [messageInputValue, setMessageInputValue] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [scenariosLoading, setScenariosLoading] = useState(true);
   const messageInputRef = useRef(null);
 
   // Load scenarios on mount
   useEffect(() => {
     async function loadScenarios() {
+      setScenariosLoading(true);
       const scenarios = await engine.getAvailableScenarios();
       setAllScenarios(scenarios);
+      setScenariosLoading(false);
     }
     loadScenarios();
   }, [engine]);
@@ -31,6 +36,12 @@ export default function Chatbot() {
     engine.onContextUpdate = () => {
       setContext({ ...engine.context });
     };
+  }, [engine]);
+
+  // Subscribe to loading state
+  useEffect(() => {
+    engine.onLoadingChange = setLoading;
+    return () => { engine.onLoadingChange = null; };
   }, [engine]);
 
   // Handle scenario selection
@@ -118,13 +129,19 @@ export default function Chatbot() {
       <div className="chatbot-main-layout">
         {/* Left Panel */}
         <div className="chatbot-left-panel">
-          <ScenarioSelector 
-            scenarios={allScenarios} 
-            onScenarioSelect={handleScenarioSelect}
-            isExpanded={isScenarioSelectorExpanded}
-            onToggleExpanded={() => setIsScenarioSelectorExpanded(!isScenarioSelectorExpanded)}
-          />
-          {showQuickResponses && <QuickResponses onResponseSelect={handleQuickResponse} />}
+          {scenariosLoading ? (
+            <LoadingScreen />
+          ) : (
+            <>
+              <ScenarioSelector 
+                scenarios={allScenarios} 
+                onScenarioSelect={handleScenarioSelect}
+                isExpanded={isScenarioSelectorExpanded}
+                onToggleExpanded={() => setIsScenarioSelectorExpanded(!isScenarioSelectorExpanded)}
+              />
+              {showQuickResponses && <QuickResponses onResponseSelect={handleQuickResponse} />}
+            </>
+          )}
         </div>
         {/* Center Panel */}
         <div className="chatbot-center-panel">
@@ -132,7 +149,19 @@ export default function Chatbot() {
             <div className="chatbot-title">Caregiver Support Chat</div>
             <div className="chatbot-subtitle">Professional Assistance</div>
           </div>
-          <MessageList messages={messages} />
+          {loading ? (
+            <LoadingScreen />
+          ) : (
+            <>
+              {currentScenario ? (
+                <MessageList messages={messages} />
+              ) : (
+                <div style={{ padding: '2rem', textAlign: 'center', color: '#888',height: '100%' }}>
+                  Please select a scenario to begin.
+                </div>
+              )}
+            </>
+          )}
           <MessageInput 
             onSend={handleSend} 
             onFocus={messageInputRef} 

@@ -1,5 +1,6 @@
 import { scenarios, responseMappings } from '../data/scenarios.js';
 import apiService from '../services/api.jsx';
+import LoadingScreen from './LoadingScreen';
 
 export default class ChatbotEngine {
   constructor() {
@@ -11,9 +12,17 @@ export default class ChatbotEngine {
     this.sessionId = null;
     this.onContextUpdate = null; // Callback for UI updates
     this.checkBackendHealth();
+    this.loading = false;
+    this.onLoadingChange = null; // Callback for UI loading state
+  }
+
+  setLoading(val) {
+    this.loading = val;
+    if (this.onLoadingChange) this.onLoadingChange(val);
   }
 
   async startScenario(scenarioId) {
+    this.setLoading(true);
     try {
       if (this.useBackend) {
         const sessionResponse = await apiService.startSession(scenarioId);
@@ -58,6 +67,8 @@ export default class ChatbotEngine {
       console.error('Error starting scenario:', error);
       this.useBackend = false;
       return this.startScenario(scenarioId);
+    } finally {
+      this.setLoading(false);
     }
   }
 
@@ -83,6 +94,7 @@ export default class ChatbotEngine {
   }
 
   async processUserInput(userInput) {
+    this.setLoading(true);
     try {
       if (this.useBackend) {
         const response = await apiService.sendMessage(
@@ -151,6 +163,8 @@ export default class ChatbotEngine {
       console.error('Error processing user input:', error);
       this.useBackend = false;
       return this.processUserInput(userInput);
+    } finally {
+      this.setLoading(false);
     }
   }
 
@@ -184,6 +198,7 @@ export default class ChatbotEngine {
   }
 
   async getAvailableScenarios() {
+    this.setLoading(true);
     try {
       if (this.useBackend) {
         const scenarios = await apiService.getScenarios();
@@ -194,6 +209,8 @@ export default class ChatbotEngine {
     } catch (error) {
       this.useBackend = false;
       return Object.values(scenarios);
+    } finally {
+      this.setLoading(false);
     }
   }
 
@@ -202,6 +219,7 @@ export default class ChatbotEngine {
   }
 
   async updateContext(newContext) {
+    this.setLoading(true);
     const convertedContext = {};
     Object.entries(newContext).forEach(([key, value]) => {
       const contextKey = key.replace(/([A-Z])/g, '_$1').toLowerCase();
@@ -219,9 +237,11 @@ export default class ChatbotEngine {
         // ignore
       }
     }
+    this.setLoading(false);
   }
 
   async checkBackendHealth() {
+    this.setLoading(true);
     try {
       const isHealthy = await apiService.checkHealth();
       this.useBackend = isHealthy;
@@ -229,6 +249,8 @@ export default class ChatbotEngine {
     } catch (error) {
       this.useBackend = false;
       return false;
+    } finally {
+      this.setLoading(false);
     }
   }
 
