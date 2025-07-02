@@ -4,26 +4,18 @@ export const scenarios = {
     name: 'No Schedule on Calendar',
     description: 'Caregiver clocked in but no schedule appears on calendar',
     contextFields: {
-      client_name: {
-        label: 'Client Name',
-        placeholder: 'Enter client name',
-        required: true
-      },
-      caregiver_name: {
-        label: 'Caregiver Name',
-        placeholder: 'Enter caregiver name',
-        required: true
-      },
-      regular_schedule: {
-        label: 'Regular Schedule',
-        placeholder: 'e.g., Mon-Fri 9am-5pm',
-        required: false
-      },
-      office_location: {
-        label: 'Office Location',
-        placeholder: 'e.g., New York, California',
-        required: true
-      }
+      client_name: { label: 'Client Name', placeholder: 'Enter client name', required: true },
+      caregiver_name: { label: 'Caregiver Name', placeholder: 'Enter caregiver name', required: true },
+      system_regular_schedule: { label: 'System Regular Schedule', placeholder: 'System schedule', required: false },
+      regular_schedule: { label: 'Regular Schedule', placeholder: 'e.g., Mon-Fri 9am-5pm', required: false },
+      is_regular_schedule: { label: 'Is Regular Schedule', placeholder: 'Yes/No', required: false },
+      today_date: { label: 'Today Date', placeholder: 'e.g., 2025-07-02', required: false },
+      today_shift: { label: 'Today Shift', placeholder: 'e.g., 9am-5pm', required: false },
+      remove_day: { label: 'Remove Day', placeholder: 'e.g., Friday', required: false },
+      client_on_phone: { label: 'Client On Phone', placeholder: 'Yes/No', required: false },
+      client_name_confirmed: { label: 'Client Name Confirmed', placeholder: 'Yes/No', required: false },
+      swap_confirmed: { label: 'Swap Confirmed', placeholder: 'Yes/No', required: false },
+      substep: { label: 'Substep', placeholder: 'Current workflow step', required: false }
     },
     steps: [
       {
@@ -88,41 +80,18 @@ export const scenarios = {
     name: 'Out of Window (Late Clock In)',
     description: 'Caregiver clocked in late for their shift',
     contextFields: {
-      client_name: {
-        label: 'Client Name',
-        placeholder: 'Enter client name',
-        required: true
-      },
-      caregiver_name: {
-        label: 'Caregiver Name',
-        placeholder: 'Enter caregiver name',
-        required: true
-      },
-      scheduled_start_time: {
-        label: 'Scheduled Start Time',
-        placeholder: 'e.g., 9:00 AM',
-        required: true
-      },
-      actual_start_time: {
-        label: 'Actual Start Time',
-        placeholder: 'e.g., 9:05 AM',
-        required: true
-      },
-      shift_duration: {
-        label: 'Shift Duration (hours)',
-        placeholder: 'e.g., 8',
-        required: true
-      },
-      office_location: {
-        label: 'Office Location',
-        placeholder: 'e.g., New York, California',
-        required: true
-      },
-      late_reason: {
-        label: 'Reason for Being Late',
-        placeholder: 'e.g., Forgot to clock in, Doctor appointment',
-        required: false
-      }
+      client_name: { label: 'Client Name', placeholder: 'Enter client name', required: true },
+      caregiver_name: { label: 'Caregiver Name', placeholder: 'Enter caregiver name', required: true },
+      scheduled_start_time: { label: 'Scheduled Start Time', placeholder: 'e.g., 9:00 AM', required: true },
+      actual_start_time: { label: 'Actual Start Time', placeholder: 'e.g., 9:05 AM', required: true },
+      late_reason: { label: 'Reason for Being Late', placeholder: 'e.g., Forgot to clock in, Doctor appointment', required: false },
+      client_on_phone: { label: 'Client On Phone', placeholder: 'Yes/No', required: false },
+      client_name_confirmed: { label: 'Client Name Confirmed', placeholder: 'Yes/No', required: false },
+      client_confirmed_time: { label: 'Client Confirmed Time', placeholder: 'e.g., 9:05 AM', required: false },
+      can_makeup_hours: { label: 'Can Make Up Hours', placeholder: 'Yes/No', required: false },
+      makeup_time: { label: 'Make Up Time', placeholder: 'e.g., 5pm', required: false },
+      makeup_later: { label: 'Make Up Later', placeholder: 'Caregiver will make up hours later', required: false },
+      substep: { label: 'Substep', placeholder: 'Current workflow step', required: false }
     },
     steps: [
       {
@@ -185,38 +154,20 @@ export const scenarios = {
   gps_out_of_range: {
     id: 'gps_out_of_range',
     name: 'GPS Signal Out of Range',
-    description: 'Caregiver clocked in outside client\'s service area',
+    description: 'Caregiver clocked in or out outside client\'s service area',
     contextFields: {
-      client_name: {
-        label: 'Client Name',
-        placeholder: 'Enter client name',
-        required: true
-      },
-      caregiver_name: {
-        label: 'Caregiver Name',
-        placeholder: 'Enter caregiver name',
-        required: true
-      },
-      client_address: {
-        label: 'Client Address',
-        placeholder: 'Enter client\'s home address',
-        required: true
-      },
-      clock_in_location: {
-        label: 'Clock In Location',
-        placeholder: 'Where did caregiver clock in?',
-        required: true
-      },
-      office_state: {
-        label: 'Office State',
-        placeholder: 'e.g., NY, CA, TX',
-        required: true
-      },
-      errand_details: {
-        label: 'Errand Details (if applicable)',
-        placeholder: 'What was picked up for client?',
-        required: false
-      }
+      caregiver_name: { label: 'Caregiver Name', placeholder: 'Enter caregiver name', required: true },
+      client_name: { label: 'Client Name', placeholder: 'Enter client name', required: true },
+      gps_issue_type: { label: 'GPS Issue Type', placeholder: 'clock_in or clock_out', required: true },
+      clock_in_location: { label: 'Clock In Location', placeholder: 'Where did caregiver clock in?', required: false },
+      clock_out_location: { label: 'Clock Out Location', placeholder: 'Where did caregiver clock out?', required: false },
+      can_try_again: { label: 'Can Try Again', placeholder: 'Yes/No', required: false },
+      unscheduled_visit_attempted: { label: 'Unscheduled Visit Attempted', placeholder: 'Yes/No', required: false },
+      errand_reason: { label: 'Errand/Reason for Out of Range', placeholder: 'e.g., picked up groceries, forgot, etc.', required: false },
+      client_on_phone: { label: 'Client On Phone', placeholder: 'Yes/No', required: false },
+      client_confirmed_reason: { label: 'Client Confirmed Reason', placeholder: 'Yes/No', required: false },
+      office_state: { label: 'Office State', placeholder: 'e.g., NY, CA, TX', required: false },
+      substep: { label: 'Substep', placeholder: 'Current workflow step', required: false }
     },
     steps: [
       {
@@ -257,31 +208,12 @@ export const scenarios = {
     name: 'Call From Caregiver Number',
     description: 'Caregiver used IVR number from their phone instead of client\'s house phone',
     contextFields: {
-      client_name: {
-        label: 'Client Name',
-        placeholder: 'Enter client name',
-        required: true
-      },
-      caregiver_name: {
-        label: 'Caregiver Name',
-        placeholder: 'Enter caregiver name',
-        required: true
-      },
-      client_phone: {
-        label: 'Client\'s House Phone',
-        placeholder: 'Enter client\'s house phone number',
-        required: true
-      },
-      caregiver_phone: {
-        label: 'Caregiver\'s Phone',
-        placeholder: 'Enter caregiver\'s phone number',
-        required: true
-      },
-      ivr_number: {
-        label: 'IVR Number Used',
-        placeholder: 'Enter the IVR number that was called',
-        required: true
-      }
+      caregiver_name: { label: 'Caregiver Name', placeholder: 'Enter caregiver name', required: true },
+      client_name: { label: 'Client Name', placeholder: 'Enter client name', required: true },
+      phone_response: { label: 'Phone Response', placeholder: 'Caregiver response', required: false },
+      app_works: { label: 'App Works', placeholder: 'Yes/No', required: false },
+      coordinator_ok: { label: 'Coordinator OK', placeholder: 'Yes/No', required: false },
+      substep: { label: 'Substep', placeholder: 'Current workflow step', required: false }
     },
     steps: [
       {
@@ -328,31 +260,15 @@ export const scenarios = {
     name: 'Phone Number Not Found',
     description: 'Caregiver used unregistered phone number',
     contextFields: {
-      client_name: {
-        label: 'Client Name',
-        placeholder: 'Enter client name',
-        required: true
-      },
-      caregiver_name: {
-        label: 'Caregiver Name',
-        placeholder: 'Enter caregiver name',
-        required: true
-      },
-      new_phone_number: {
-        label: 'New Phone Number',
-        placeholder: 'Enter the new phone number used',
-        required: true
-      },
-      old_phone_number: {
-        label: 'Previous Phone Number',
-        placeholder: 'Enter the previous registered phone number',
-        required: false
-      },
-      phone_owner: {
-        label: 'Phone Owner',
-        placeholder: 'Who owns this phone number?',
-        required: true
-      }
+      caregiver_name: { label: 'Caregiver Name', placeholder: 'Enter caregiver name', required: true },
+      client_name: { label: 'Client Name', placeholder: 'Enter client name', required: true },
+      unregistered_phone: { label: 'Unregistered Phone', placeholder: 'Phone number used', required: false },
+      phone_owner: { label: 'Phone Owner', placeholder: 'Who owns this phone number?', required: true },
+      client_can_confirm: { label: 'Client Can Confirm', placeholder: 'Yes/No', required: false },
+      client_on_phone: { label: 'Client On Phone', placeholder: 'Yes/No', required: false },
+      client_name_confirmed: { label: 'Client Name Confirmed', placeholder: 'Yes/No', required: false },
+      new_phone_confirmed: { label: 'New Phone Confirmed', placeholder: 'Yes/No', required: false },
+      substep: { label: 'Substep', placeholder: 'Current workflow step', required: false }
     },
     steps: [
       {
@@ -410,7 +326,12 @@ export const scenarios = {
     id: 'duplicate_call',
     name: 'Duplicate Call',
     description: 'Caregiver accidentally clocked in or out more than once; no call needed, call will be rejected.',
-    contextFields: {},
+    contextFields: {
+      caregiver_name: { label: 'Caregiver Name', placeholder: 'Enter caregiver name', required: false },
+      client_name: { label: 'Client Name', placeholder: 'Enter client name', required: false },
+      duplicate_call_reason: { label: 'Duplicate Call Reason', placeholder: 'Reason for duplicate call', required: false },
+      substep: { label: 'Substep', placeholder: 'Current workflow step', required: false }
+    },
     steps: [
       {
         id: 'greeting',
@@ -452,4 +373,4 @@ export const responseMappings = {
   app_issue: ['app doesn\'t work', 'app doesnt work', 'my app'],
   client_new_number: ['client new number', 'new phone', 'client\'s new'],
   client_greeting: ['fine', 'good', 'doing well']
-}; 
+};

@@ -41,13 +41,24 @@ def health_check():
 @app.get("/scenarios")
 def get_scenarios():
     return [
-        {"id": "general_chat", "name": "General Chat", "description": "Test generic conversation", "context_fields": []},
+        {"id": "general_chat", "name": "General Chat", "description": "Test generic conversation", "context_fields": ["caregiver_name", "client_name", "general_chat_topic", "substep"]},
         {
             "id": "no_schedule",
             "name": "No Schedule on Calendar",
             "description": "Caregiver clocked in but no schedule appears on calendar",
             "context_fields": [
-                "client_name", "caregiver_name", "system_regular_schedule", "caregiver_regular_schedule", "today_date", "today_shift", "swap_day", "needs_swap", "client_on_phone", "swap_confirmed"
+                "client_name",
+                "caregiver_name",
+                "system_regular_schedule",
+                "regular_schedule",
+                "is_regular_schedule",
+                "today_date",
+                "today_shift",
+                "remove_day",
+                "client_on_phone",
+                "client_name_confirmed",
+                "swap_confirmed",
+                "substep"
             ]
         },
         {
@@ -55,15 +66,15 @@ def get_scenarios():
             "name": "Out of Window (Late Clock In)",
             "description": "Caregiver clocked in late for their shift",
             "context_fields": [
-                "client_name", "caregiver_name", "scheduled_start_time", "actual_start_time", "late_reason", "client_on_phone", "client_confirmed_time", "can_makeup_hours", "makeup_time"
+                "client_name", "caregiver_name", "scheduled_start_time", "actual_start_time", "late_reason", "client_on_phone", "client_name_confirmed", "client_confirmed_time", "can_makeup_hours", "makeup_time", "makeup_later", "substep"
             ]
         },
         {
             "id": "gps_out_of_range",
             "name": "GPS Signal Out of Range",
-            "description": "Caregiver clocked in outside client's service area",
+            "description": "Caregiver clocked in or out outside client's service area",
             "context_fields": [
-                "client_name", "caregiver_name", "client_address", "clock_in_location", "errand_details", "client_on_phone", "client_confirmed_errand"
+                "caregiver_name", "client_name", "gps_issue_type", "clock_in_location", "clock_out_location", "can_try_again", "unscheduled_visit_attempted", "errand_reason", "client_on_phone", "client_confirmed_reason", "office_state", "substep"
             ]
         },
         {
@@ -71,7 +82,7 @@ def get_scenarios():
             "name": "Call From Caregiver Number",
             "description": "Caregiver used IVR number from their phone instead of client's house phone",
             "context_fields": [
-                "client_name", "caregiver_name", "client_phone", "caregiver_phone", "ivr_number", "client_on_phone", "app_issue"
+                "caregiver_name", "client_name", "phone_response", "app_works", "coordinator_ok", "substep"
             ]
         },
         {
@@ -79,14 +90,14 @@ def get_scenarios():
             "name": "Phone Number Not Found",
             "description": "Caregiver used unregistered phone number",
             "context_fields": [
-                "client_name", "caregiver_name", "new_phone_number", "old_phone_number", "phone_owner", "client_on_phone"
+                "caregiver_name", "client_name", "unregistered_phone", "phone_owner", "client_can_confirm", "client_on_phone", "client_name_confirmed", "new_phone_confirmed", "substep"
             ]
         },
         {
             "id": "duplicate_call",
             "name": "Duplicate Call",
             "description": "Caregiver accidentally clocked in or out more than once; no call needed, call will be rejected.",
-            "context_fields": []
+            "context_fields": ["caregiver_name", "client_name", "duplicate_call_reason", "substep"]
         }
     ]
 
